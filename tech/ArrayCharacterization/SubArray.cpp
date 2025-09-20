@@ -40,7 +40,6 @@
 #include "global.h"
 #include "constant.h"
 #include <math.h>
-#include <iomanip>
 
 SubArray::SubArray() {
 	// TODO Auto-generated constructor stub
@@ -495,9 +494,6 @@ void SubArray::CalculateArea() {
 		height = width = area = invalid_value;
 	} else {
 		double addWidth = 0, addHeight = 0;
-		double widthPeripherals = 0, heightPeripherals = 0;
-		double areaPeripherals = 0;
-		double areaCellArray = lenWordline * lenBitline;
 
 		width = lenWordline;
 		height = lenBitline;
@@ -558,10 +554,11 @@ void SubArray::CalculateArea() {
 
 		if (cell->memCellType == eDRAM3T333) {
 			// monolithic 3D cells fit above peripherals
-			widthPeripherals = (width - lenWordline);
-			heightPeripherals = (height - lenBitline);
-			width = MAX(width, widthPeripherals);
-			height = MAX(height, heightPeripherals);
+			width -= lenWordline;
+			if (width <= 0) {
+				/* should never happen */
+				cout << "[ERROR] Subarray has zero width!" << endl;
+			} 
 		}
 		area = width * height;
 	}
@@ -594,16 +591,11 @@ void SubArray::CalculateLatency(double _rampInput) {
 					inputParameter->temperature, *tech);
 			double tau = (resCellAccess + resPullDown) * (capCellAccess + capBitline + bitlineMux.capForPreviousDelayCalculation)
 					+ resBitline * (bitlineMux.capForPreviousDelayCalculation + capBitline / 2);
-// Print in scientific notation with 6 decimal places
-//std::cout << std::scientific << std::setprecision(6);
-//std::cout << "tau = " << tau << " s" << std::endl;
 			tau *= log(voltagePrecharge / (voltagePrecharge - senseVoltage / 2));	/* one signal raises and the other drops, so senseVoltage/2 is enough */
-//std::cout << "tau = " << tau << " s" << std::endl;
 			double gm = CalculateTransconductance(((tech->featureSize <= 14*1e-9)? 2:1)*cell->widthAccessCMOS * tech->featureSize, NMOS, *tech);
 			double beta = 1 / (resPullDown * gm);
 			double bitlineRamp = 0;
-			bitlineDelay = horowitz(tau, 0, rowDecoder.rampOutput, &bitlineRamp);
-//std::cout << "bitline = " << bitlineDelay << " s" << std::endl;
+			bitlineDelay = horowitz(tau, beta, rowDecoder.rampOutput, &bitlineRamp);
 			bitlineMux.CalculateLatency(bitlineRamp);
 			if (internalSenseAmp) {
 				senseAmp.CalculateLatency(bitlineMuxDecoder.rampOutput);
@@ -617,7 +609,6 @@ void SubArray::CalculateLatency(double _rampInput) {
 					+ senseAmpMuxLev1.readLatency + senseAmpMuxLev2.readLatency;
 			/* assume symmetric read/write for SRAM bitline delay */
 			writeLatency = readLatency;
-//std::cout << "writelatency = " << writeLatency << " s" << std::endl;
 		} else if (cell->memCellType == DRAM || cell->memCellType == eDRAM) {
 			double cap = (capCellAccess + cell->capDRAMCell) * (capBitline + bitlineMux.capForPreviousDelayCalculation)
 					/ (capCellAccess + cell->capDRAMCell + capBitline + bitlineMux.capForPreviousDelayCalculation);
@@ -637,7 +628,6 @@ void SubArray::CalculateLatency(double _rampInput) {
 			/* assume symmetric read/write for DRAM/eDRAM bitline delay */
 			writeLatency = readLatency;
 		} else if (cell->memCellType == eDRAM3T || cell->memCellType == eDRAM3T333) {
-			/*
 			double capW = (capCellAccessW + cell->capDRAMCell) * (capBitline + bitlineMux.capForPreviousDelayCalculation)
 					/ (capCellAccessW + cell->capDRAMCell + capBitline + bitlineMux.capForPreviousDelayCalculation);
 			double capR = (capCellAccessR + cell->capDRAMCell) * (capBitline + bitlineMux.capForPreviousDelayCalculation)
@@ -646,29 +636,9 @@ void SubArray::CalculateLatency(double _rampInput) {
 			double resR = resBitline + resCellAccessR;
 			double tauW = 2.3 * resW * capW;
 			double tauR = 2.3 * resR * capR;
-			*/
-			// Write path
-			double totalCapW = capCellAccessW + cell->capDRAMCell + capBitline + bitlineMux.capForPreviousDelayCalculation;
-			double tauW = 2.3*(resCellAccessW * totalCapW
-						+ resBitline * (bitlineMux.capForPreviousDelayCalculation + capBitline / 2.0));
-			// Read path
-			double totalCapR = capCellAccessR + cell->capDRAMCell + capBitline + bitlineMux.capForPreviousDelayCalculation;
-			double tauR = 2.3*(resCellAccessR * totalCapR
-						+ resBitline * (bitlineMux.capForPreviousDelayCalculation + capBitline / 2.0));
-			
-// Print in scientific notation with 6 decimal places
-//std::cout << std::scientific << std::setprecision(6);
-//std::cout << "tauR = " << tauR << " s" << std::endl;
-//std::cout << "tauW = " << tauW << " s" << std::endl;
 			double bitlineRamp = 0;
-			double gm = CalculateTransconductance(((techW->featureSize <= 14*1e-9)? 2:1)*cell->widthAccessCMOS * techW->featureSize, NMOS, *techW);
-			double beta = 1 / (gm);
 			bitlineDelayW = horowitz(tauW, 0, rowDecoder.rampOutput, &bitlineRamp);
-			gm = CalculateTransconductance(((techR->featureSize <= 14*1e-9)? 2:1)*cell->widthAccessCMOSR * techR->featureSize, NMOS, *techR);
-			beta = 1 / (gm);
 			bitlineDelayR = horowitz(tauR, 0, rowDecoder.rampOutput, &bitlineRamp);
-//std::cout << "bitlineR = " << bitlineDelayR << " s" << std::endl;
-//std::cout << "bitlineW = " << bitlineDelayW << " s" << std::endl;
 			senseAmp.CalculateLatency(bitlineRamp);
 			senseAmpMuxLev1.CalculateLatency(1e20);
 			senseAmpMuxLev2.CalculateLatency(senseAmpMuxLev1.rampOutput);
@@ -679,7 +649,6 @@ void SubArray::CalculateLatency(double _rampInput) {
 			readLatency = decoderLatency + bitlineDelayR + senseAmp.readLatency
 					+ senseAmpMuxLev1.readLatency + senseAmpMuxLev2.readLatency;
 			writeLatency = decoderLatency + bitlineDelayW;
-//std::cout << "writelatency = " << writeLatency << " s" << std::endl;
 		} else if (cell->memCellType == MRAM || cell->memCellType == PCRAM || cell->memCellType == memristor || cell->memCellType == FBRAM || cell->memCellType == FeFET || cell->memCellType == MLCFeFET || cell->memCellType == MLCRRAM) {
 			double bitlineRamp = 0;
 			if (cell->readMode == false) {	/* current-sensing */
@@ -852,18 +821,18 @@ void SubArray::CalculatePower() {
 		} else if (cell->memCellType == DRAM || cell->memCellType == eDRAM) {
 			/* Codes below calculate the DRAM bitline power */
 			readDynamicEnergy = (capCellAccess + capBitline + bitlineMux.capForPreviousPowerCalculation) * senseVoltage * tech->vdd * numColumn;
+            refreshDynamicEnergy = readDynamicEnergy;
 			double writeVoltage = tech->vpp;	/* should also equal to setVoltage, for DRAM, it is Vdd */
 			writeDynamicEnergy = (capBitline + bitlineMux.capForPreviousPowerCalculation) * writeVoltage * writeVoltage * numColumn;
-            refreshDynamicEnergy = readDynamicEnergy + writeDynamicEnergy;
 			leakage += CalculateGateLeakage(INV, 1, ((tech->featureSize <= 14*1e-9)? 2:1)*cell->widthAccessCMOS * tech->featureSize, 0,
 					inputParameter->temperature, *tech) * tech->vdd;
 			leakage *= numColumn;
 		} else if (cell->memCellType == eDRAM3T || cell->memCellType == eDRAM3T333) {
 			/* Codes below calculate the DRAM bitline power */
 			readDynamicEnergy = (capCellAccessR + capBitline + bitlineMux.capForPreviousPowerCalculation) * senseVoltage * techR->vdd * numColumn;
+            refreshDynamicEnergy = readDynamicEnergy;
 			double writeVoltage = techW->vpp;	/* should also equal to setVoltage, for DRAM, it is Vdd */
 			writeDynamicEnergy = (capBitline + bitlineMux.capForPreviousPowerCalculation) * writeVoltage * writeVoltage * numColumn;
-            refreshDynamicEnergy = readDynamicEnergy + writeDynamicEnergy;
 			leakage = CalculateGateLeakage(INV, 1, ((tech->featureSize <= 14*1e-9)? 2:1)*cell->widthAccessCMOS * tech->featureSize, 0,
 					inputParameter->temperature, *tech) * tech->vdd;
 			leakage *= numColumn;
@@ -1103,14 +1072,8 @@ SubArray & SubArray::operator=(const SubArray &rhs) {
 	resWordline = rhs.resWordline;
 	resBitline = rhs.resBitline;
 	resCellAccess = rhs.resCellAccess;
-	resCellAccessR = rhs.resCellAccessR;
-	resCellAccessW = rhs.resCellAccessW;
 	capCellAccess = rhs.capCellAccess;
-	capCellAccessR = rhs.capCellAccessR;
-	capCellAccessW = rhs.capCellAccessW;
 	bitlineDelay = rhs.bitlineDelay;
-	bitlineDelayR = rhs.bitlineDelayR;
-	bitlineDelayW = rhs.bitlineDelayW;
 	chargeLatency = rhs.chargeLatency;
 	columnDecoderLatency = rhs.columnDecoderLatency;
 	bitlineDelayOn = rhs.bitlineDelayOn;

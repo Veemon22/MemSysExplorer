@@ -623,11 +623,10 @@ void Technology::Initialize(int _featureSizeInNano, DeviceRoadmap _deviceRoadmap
 			currentOffPmos[90] = 891.60e-6;
 			currentOffPmos[100]= 1073.00e-6;
 			pnSizeRatio = currentOnNmos[0]/currentOnPmos[0];
-		 // Largernode dummy for interpolation only
-		} else if (_deviceRoadmap == IGZO) {
+		} else if (_deviceRoadmap == IGZO) { // Largernode dummy for interpolation only
 			/* IGZO TFT - virtual source model derived */
 			vdd = 1.4;
-			vpp = 2.0;
+			vpp = 1.4;
 			vth = 0.667;
 			phyGateLength = 0.044e-6;
 			capIdealGate = 8.93e-16;
@@ -636,7 +635,7 @@ void Technology::Initialize(int _featureSizeInNano, DeviceRoadmap _deviceRoadmap
 			effectiveElectronMobility = 10.0e-4; // μ in cm^2/Vs
 			effectiveHoleMobility = 0.0;
 			pnSizeRatio = 1.0;
-			effectiveResistanceMultiplier = 2.0;
+			effectiveResistanceMultiplier = 5.0;
 			gm_oncurrent = 0.0; // dummy value only used for advanced nodes
 		
 			// NMOS ON-current, Unit: μA/μm 
@@ -804,7 +803,7 @@ void Technology::Initialize(int _featureSizeInNano, DeviceRoadmap _deviceRoadmap
 		} else if (_deviceRoadmap == IGZO) {
 			/* IGZO TFT - virtual source model derived */
 			vdd = 1.4;
-			vpp = 2.0;
+			vpp = 1.4;
 			vth = 0.667;
 			phyGateLength = 0.044e-6;
 			capIdealGate = 8.93e-16;
@@ -813,7 +812,7 @@ void Technology::Initialize(int _featureSizeInNano, DeviceRoadmap _deviceRoadmap
 			effectiveElectronMobility = 10.0e-4; // μ in cm^2/Vs
 			effectiveHoleMobility = 0.0;
 			pnSizeRatio = 1.0;
-			effectiveResistanceMultiplier = 2.0;
+			effectiveResistanceMultiplier = 5.0;
 			gm_oncurrent = 0.0; // dummy value only used for advanced nodes
 		
 			// NMOS ON-current, Unit: μA/μm approximately scaled with temperature
@@ -990,7 +989,7 @@ void Technology::Initialize(int _featureSizeInNano, DeviceRoadmap _deviceRoadmap
 			effectiveElectronMobility = 78700e-4;
 			effectiveHoleMobility = 78700e-4;
 			pnSizeRatio = 1.0;
-			effectiveResistanceMultiplier = 2.0;
+			effectiveResistanceMultiplier = 1.3;
 			gm_oncurrent = 0.0;
 
 			currentOnNmos[0]   = 3361.1;
@@ -1179,7 +1178,7 @@ void Technology::Initialize(int _featureSizeInNano, DeviceRoadmap _deviceRoadmap
 			effectiveElectronMobility = 78700e-4;
 			effectiveHoleMobility = 78700e-4;
 			pnSizeRatio = 1.0;
-			effectiveResistanceMultiplier = 2.0;
+			effectiveResistanceMultiplier = 1.3;
 			gm_oncurrent = 0.0;
 
 			currentOnNmos[0]   = 3361.1;
