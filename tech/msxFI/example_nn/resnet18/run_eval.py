@@ -4,8 +4,27 @@ import sys
 import shlex
 import torch
 import torch.nn as nn
-from model import LeNet
-from train import get_mnist_dataloaders
+import torchvision
+import torchvision.transforms as transforms
+from model import ResNet18
+from train import Trainer
+
+def get_cifar10_dataloaders(batch_size, train_root='./data', download=True, test_batch_size=None, shuffle_test=False):
+    """Helper function to get CIFAR-10 dataloaders for testing."""
+    if test_batch_size is None:
+        test_batch_size = batch_size
+
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
+
+    testset = torchvision.datasets.CIFAR10(
+        root=train_root, train=False, download=download, transform=transform_test)
+    test_loader = torch.utils.data.DataLoader(
+        testset, batch_size=test_batch_size, shuffle=shuffle_test, num_workers=2)
+    
+    return None, test_loader
 
 def evaluate_model(model, dataloader, device):
     model.eval()
@@ -23,19 +42,17 @@ def evaluate_model(model, dataloader, device):
 
 def main():
     # --- Configuration ---
-    MODE = "rram_mlc"  # Specific memory model: "rram_mlc", "fefet_200d", "dram3t", "dram1t", etc.
+    MODE = "dram333t"  # Specific memory model: "rram_mlc", "fefet_200d", "dram3t", "dram1t", etc.
     SEED = 0
-    INT_BITS = 2
-    FRAC_BITS = 4
-    Q_TYPE = "afloat"
+    Q_TYPE = "float32"  # Use 32-bit floating point for fault injection
     REP_CONF = [8, 8]
 
-    MODEL_PATH = "msxFI/example_nn/lenet/checkpoints/lenet.pth"
-    MODEL_DIR = "msxFI/example_nn/lenet"  # Directory containing model.py
+    MODEL_PATH = "msxFI/example_nn/resnet18/checkpoints/resnet18.pth"
+    MODEL_DIR = "msxFI/example_nn/resnet18"  # Directory containing model.py
 
     # DRAM specific parameters (only used for DRAM models)
-    REFRESH_T = 70  # in microseconds
-    SIGMA = 0.05
+    REFRESH_T = 501  # in microseconds
+    SIGMA = 0.028
 
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
     WORKSPACE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "../../.."))
@@ -43,17 +60,15 @@ def main():
     model_basename, model_ext = os.path.splitext(os.path.basename(MODEL_PATH))
     model_dir_path = os.path.dirname(MODEL_PATH)
 
-    # --- Step 1: Generate Faulty Model ---
     print("--- Step 1: Generating Faulty Model ---")
 
-    # Generate filename based on memory model type
     if 'dram' in MODE:
         if REFRESH_T is None:
             print("Error: For DRAM modes, refresh_t must be set.", file=sys.stderr)
             sys.exit(1)
-        faulty_model_name = f"{model_basename}_{MODE}_s{SEED}_q{Q_TYPE}_i{INT_BITS}_f{FRAC_BITS}_rt{float(REFRESH_T)}{model_ext}"
+        faulty_model_name = f"{model_basename}_{MODE}_s{SEED}_q{Q_TYPE}_rt{float(REFRESH_T)}{model_ext}"
     else:
-        faulty_model_name = f"{model_basename}_{MODE}_s{SEED}_q{Q_TYPE}_i{INT_BITS}_f{FRAC_BITS}{model_ext}"
+        faulty_model_name = f"{model_basename}_{MODE}_s{SEED}_q{Q_TYPE}{model_ext}"
 
     faulty_model_rel_path = os.path.join(model_dir_path, faulty_model_name)
     faulty_model_path = os.path.join(WORKSPACE_ROOT, faulty_model_rel_path)
@@ -71,14 +86,11 @@ def main():
         "--eval_dnn",
         "--model", MODEL_PATH,
         "--model_def", os.path.join(MODEL_DIR, "model.py"),
-        "--model_class", "LeNet",
+        "--model_class", "ResNet18",
         "--seed", str(SEED),
-        "--int_bits", str(INT_BITS),
-        "--frac_bits", str(FRAC_BITS),
         "--q_type", Q_TYPE
     ]
 
-    # Add rep_conf for NVM models (not for DRAM models)
     if 'dram' not in MODE:
         cmd_list.extend(["--rep_conf"] + [str(x) for x in REP_CONF])
 
@@ -106,31 +118,36 @@ def main():
     
     print("")
 
-    # --- Step 2: Evaluating Models (Integrated) ---
     print("--- Step 2: Evaluating Models ---")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
     data_root = os.path.join(SCRIPT_DIR, "data")
-    print(f"Loading MNIST dataset from: {data_root}")
+    print(f"Loading CIFAR-10 dataset from: {data_root}")
     
     if not os.path.isdir(data_root):
-        print(f"Warning: Data directory {data_root} not found. MNIST download might be attempted by dataloader.")
+        print(f"Warning: Data directory {data_root} not found. CIFAR-10 download might be attempted by dataloader.")
 
-    _, test_loader = get_mnist_dataloaders(batch_size=1000, train_root=data_root, download=True)
+    _, test_loader = get_cifar10_dataloaders(batch_size=1000, train_root=data_root, download=True)
 
-    # Evaluate original model
     print("\nEvaluating original model...")
     original_model_path = os.path.join(WORKSPACE_ROOT, MODEL_PATH)
     
-    original_model = torch.load(original_model_path, map_location=device, weights_only=False)
-    original_model = original_model.to(device)
+    original_model = ResNet18(num_classes=10).to(device)
+    checkpoint = torch.load(original_model_path, map_location=device)
+    state_dict = checkpoint['net']
+
+    if list(state_dict.keys())[0].startswith('module.'):
+        unwrapped_state_dict = {k.partition('module.')[2]: v for k, v in state_dict.items()}
+        original_model.load_state_dict(unwrapped_state_dict)
+    else:
+        original_model.load_state_dict(state_dict)
     
     original_accuracy = evaluate_model(original_model, test_loader, device)
     print(f"Accuracy of the original model: {original_accuracy:.2f}%")
 
-    # Evaluate faulty model
     print("\nEvaluating faulty model...")
+
     faulty_model = torch.load(faulty_model_path, map_location=device, weights_only=False)
     faulty_model = faulty_model.to(device)
     

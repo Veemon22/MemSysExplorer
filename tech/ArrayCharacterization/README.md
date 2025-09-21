@@ -9,7 +9,7 @@ Memory array characterization in MemSysExplorer is performed using an extended v
     - **SRAM**: Static random access memory
     - **1T1C eDRAM**: Standard capacitor-based dynamic random access memory
     - **3T eDRAM**: Three transistor eDRAM with per-cell support for mixed device types and threshold voltages (Vt)
-    - **333-eDRAM**: 3T eDRAM leveraging monolithic 3D integration of 3 types of transistors including emerging transistor channel materials ([in press](https://62dac.conference-program.com/presentation/?id=RESEARCH2286&sess=sess124))
+    - [**333-eDRAM**](https://ieeexplore.ieee.org/document/11132950): 3T eDRAM leveraging monolithic 3D integration of 3 types of transistors including emerging transistor channel materials
     - **NVMs**: Support for various NVM technologies, including:
         + **CTT (Charge Trap Transistor)**
         + **FeFET (Ferroelectric Field-Effect Transistor)**: A type of NVM that uses a ferroelectric material to store data.
@@ -32,7 +32,7 @@ Memory array characterization in MemSysExplorer is performed using an extended v
         - Nodes above 22 nm are calibrated to the Predictive Technology Model ([PTM](https://mec.umn.edu/ptm)) Project as in [Neurosim](https://github.com/neurosim/DNN_NeuroSim_V1.4)
         - The 10 nm node is calibrated to IRDS 2016 as in [Neurosim](https://github.com/neurosim/DNN_NeuroSim_V1.4)
         - Silicon Technology nodes below 10 nm are calibrated to IRDS 2021 as in [Neurosim](https://github.com/neurosim/DNN_NeuroSim_V1.4)
-        - Examples of beyond silicon transistor technologies for eDRAM such as indium-gallium-zinc-oxide transistors with gate length 45nm and carbon nanotube field effect transistors with gate length 22nm are calibrated to experimental data as in [333-eDRAM](https://62dac.conference-program.com/presentation/?id=RESEARCH2286&sess=sess124)
+        - Examples of beyond silicon transistor technologies for eDRAM such as indium-gallium-zinc-oxide transistors with gate length 45nm and carbon nanotube field effect transistors with gate length 22nm are calibrated to experimental data as in [333-eDRAM](https://ieeexplore.ieee.org/document/11132950)
 - **Bit Cell Configurations**
     - Each configuration references a sample cell calibrated to physical layouts from literature and specifications from industry. For SRAM and eDRAM, the following references were used:
         1. Barth, John, et al. "A 500 MHz random cycle, 1.5 ns latency, SOI embedded DRAM macro featuring a three-transistor micro sense amplifier." IEEE Journal of Solid-State Circuits 43.1 (2008): 86-95.
@@ -42,7 +42,7 @@ Memory array characterization in MemSysExplorer is performed using an extended v
         5. Edri, Noa, et al. "Silicon-proven, per-cell retention time distribution model for gain-cell based eDRAMs." IEEE Transactions on Circuits and Systems I: Regular Papers 63.2 (2016): 222-232.
         6. Narinx, Jonathan, et al. "A 24 kb single-well mixed 3T gain-cell eDRAM with body-bias in 28 nm FD-SOI for refresh-free DSP applications." 2019 IEEE Asian Solid-State Circuits Conference (A-SSCC). IEEE, 2019.
         7. Giterman, Robert, et al. "A 1-Mbit fully logic-compatible 3T gain-cell embedded DRAM in 16-nm FinFET." IEEE Solid-State Circuits Letters 3 (2020): 110-113.
-        8. Kong, David, et al. "333-eDRAM – 3T Embedded DRAM Leveraging Monolithic 3D Integration of 3 Transistor Types: IGZO, Carbon Nanotube and Silicon FETs." ACM/IEEE Design Automation Conference (DAC), 2025.
+        8. Kong, David, et al. "333-eDRAM – 3T Embedded DRAM Leveraging Monolithic 3D Integration of 3 Transistor Types: IGZO, Carbon Nanotube and Silicon FETs." in 2025 62nd ACM/IEEE Design Automation Conference (DAC), IEEE, 2025, pp. 1-7.
 
 
 ## Compilation
@@ -120,4 +120,4 @@ Contributions are welcome! Please feel free to submit issues, feature requests, 
 2. Poremba, Matt, et al. "Destiny: A tool for modeling emerging 3d nvm and edram caches." 2015 Design, Automation & Test in Europe Conference & Exhibition (DATE). IEEE, 2015.
 3. Pentecost, Lillian, et al. "NVMExplorer: A Framework for Cross-Stack Comparisons of Embedded Non-Volatile Memories." 2022 IEEE International Symposium on High-Performance Computer Architecture (HPCA). IEEE, 2022.
 4. Lee, Junmo, et al. "Neurosim v1. 4: Extending technology support for digital compute-in-memory toward 1nm node." IEEE Transactions on Circuits and Systems I: Regular Papers (2024).
-5. Kong, David, et al. "333-eDRAM – 3T Embedded DRAM Leveraging Monolithic 3D Integration of 3 Transistor Types: IGZO, Carbon Nanotube and Silicon FETs." ACM/IEEE Design Automation Conference (DAC), 2025.
+5. Kong, David, et al. "333-eDRAM – 3T Embedded DRAM Leveraging Monolithic 3D Integration of 3 Transistor Types: IGZO, Carbon Nanotube and Silicon FETs." in 2025 62nd ACM/IEEE Design Automation Conference (DAC), IEEE, 2025, pp. 1-7.

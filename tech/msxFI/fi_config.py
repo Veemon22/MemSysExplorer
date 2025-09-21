@@ -10,6 +10,7 @@ mem_dict = {
     'rram_mlc': 'mlc_rram_args.p',
     'dram3t': 'dram3t_args.p',
     'dram1t': 'dram1t_args.p',
+    'dram333t': 'dram333t_args.p',
     'fefet_mlc': 'mlc_fefet_args.p',
     'fefet_50d': 'slc_fefet_50dom.p',
     'fefet_100d': 'slc_fefet_100dom.p',
@@ -20,7 +21,13 @@ mem_dict = {
 # Configuration parameters
 temperature = 300  # Temperature in Kelvin (300K-400K)
 feature_size = 22  # Feature size in nm
-SS = 70  # Subthreshold Swing in mV/dec
+SS = 90  # Subthreshold Swing in mV/dec
+
+# DRAM calibration defaults
+dram_nominal_vdd = 1.4  # Volts
+dram_nominal_refresh_time = 501e-6  # Seconds
+dram_vth_spread = 0.05  # Volts representing +/-sigma_multiple spread by default
+dram_sigma_multiple = 3.5  # Default number of sigmas associated with the spread
 
 # optional print statements during msxFI execution
 Debug=False

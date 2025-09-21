@@ -14,7 +14,10 @@ from .data_transforms import *
 from . import fi_config
 import importlib.util
 
-def get_error_map(max_lvls_cell, refresh_t=None, vth_sigma=0.05, custom_vdd=None):
+# DRAM calibration helpers (configurable via fi_config)
+_dram_calibration_scale_cache = {}
+
+def get_error_map(max_lvls_cell, refresh_t=None, vth_sigma=0.05, custom_vdd=None, custom_vpp=None):
   """
   Retrieve the correct per-storage-cell error map for the configured NVM settings according to the maximum levels-per-cell used
   OR generate DRAM error map based on physical parameters
@@ -23,6 +26,7 @@ def get_error_map(max_lvls_cell, refresh_t=None, vth_sigma=0.05, custom_vdd=None
   :param refresh_t: Refresh time in seconds for DRAM models
   :param vth_sigma: Standard deviation of Vth in Volts for DRAM fault rate calculation
   :param custom_vdd: Custom vdd in volts for DRAM models (optional)
+  :param custom_vpp: Custom vpp in volts for DRAM models (optional)
   """
   if 'dram' in fi_config.mem_model:
     mem_data_path = os.path.dirname(__file__)
@@ -42,7 +46,7 @@ def get_error_map(max_lvls_cell, refresh_t=None, vth_sigma=0.05, custom_vdd=None
     tech_node_data = dram_params_data[selected_size]
     dist_args = (tech_node_data, fi_config.temperature, selected_size)
     
-    fault_prob = fault_rate_gen(dist_args, refresh_t, vth_sigma, custom_vdd)
+    fault_prob = fault_rate_gen(dist_args, refresh_t, vth_sigma, custom_vdd, custom_vpp)
     error_map = np.zeros(1, dtype=object)  # DRAM uses SLC
     error_map[0] = np.zeros((2, 2))
     error_map[0][0, 1] = 0.0  # 0->1 fault probability = 0
@@ -87,7 +91,7 @@ def get_error_map(max_lvls_cell, refresh_t=None, vth_sigma=0.05, custom_vdd=None
   return error_map
 
  
-def fault_rate_gen(dist_args, refresh_time=None, vth_sigma=0.05, custom_vdd=None):
+def fault_rate_gen(dist_args, refresh_time=None, vth_sigma=0.05, custom_vdd=None, custom_vpp=None):
   """
   Randomly generate fault rate per experiment and storage cell config according to fault model
 
@@ -96,6 +100,7 @@ def fault_rate_gen(dist_args, refresh_time=None, vth_sigma=0.05, custom_vdd=None
   :param refresh_time: refresh time in seconds for DRAM (required for DRAM models)
   :param vth_sigma: standard deviation of Vth in Volts for DRAM fault rate calculation
   :param custom_vdd: custom vdd in volts for DRAM models (optional)
+  :param custom_vpp: custom vpp in volts for DRAM models (optional)
   """
   if 'rram' in fi_config.mem_model:
     x = dist_args[0]
@@ -123,25 +128,41 @@ def fault_rate_gen(dist_args, refresh_time=None, vth_sigma=0.05, custom_vdd=None
     closest_temp_idx = temp_diffs.index(min(temp_diffs))
     selected_temp = available_temps[closest_temp_idx]
     
-    mu_Ioff = tech_node_data['Ioff'][selected_temp]
+    median_Ioff = tech_node_data['Ioff'][selected_temp]
+    effective_vth_sigma = None
+    if fi_config.mem_model == 'dram333t':
+      vpp = custom_vpp if custom_vpp is not None else 1.4
+      SS_V_per_dec = fi_config.SS * 1e-3
+      delta_v = vpp - vdd
+      exponent = -delta_v / SS_V_per_dec
+      median_Ioff = median_Ioff * (10**exponent)
 
+      params = _get_dram_calibration_config()
+      calibration_scale = get_dram_calibration_scale(dist_args)
+      median_Ioff *= calibration_scale
+
+      effective_vth_sigma = normalize_vth_sigma(vth_sigma)
+      if effective_vth_sigma is None or effective_vth_sigma <= 0:
+        raise ValueError("Invalid Vth sigma provided for DRAM fault rate calculation")
+
+    vth = effective_vth_sigma if effective_vth_sigma is not None else vth_sigma
     # Calculate Ioff_sigma from vth_sigma
     Vt = (kB * selected_temp) / q
-    # When Vgs ↑ by SS mV → Isub ↑ 10× ⇒ Isub ∝ 10^((Vgs - Vth) / SS)
-    # Isub ≈ I0 · exp[(Vgs - Vth) / (n·Vt)] → exponential dominates
-    # Use 10^x = e^(x·ln(10)): Isub ∝ exp[(Vgs - Vth) · ln(10) / SS]
-    # Comparing exponents: ln(10)/SS = 1 / (n·Vt) ⇒ n = SS / (Vt · ln(10))
     n_factor = fi_config.SS * 1e-3 / (Vt * math.log(10))
     # Compute stddev of ln(Ioff) from threshold voltage variation
-    sigma_ln_Ioff = vth_sigma / (n_factor * Vt)
-    # Convert to stddev of Ioff (log-normal to linear)
-    sigma_Ioff = mu_Ioff * math.sqrt(math.exp(sigma_ln_Ioff**2) - 1)
-
+    sigma_ln_Ioff = vth / (n_factor * Vt)
+    ln_mu = np.log(median_Ioff)
     I_critical = (cap_F * vdd / 2) / refresh_time
-    cdf = 1.0 - NormalDist(mu=mu_Ioff, sigma=sigma_Ioff).cdf(I_critical)
+    z = (np.log(I_critical) - ln_mu) / sigma_ln_Ioff
+    cdf = 1.0 - ss.norm.cdf(z)
     cdf = max(0, cdf)
-    
-    print(f"DRAM Params: Ioff={mu_Ioff:.2e}A, I_critical={I_critical:.2e}A, Bit-flip Rate (1->0): {cdf*100:.2f}%")
+
+    print(
+      "DRAM Params: "
+      f"median_Ioff={median_Ioff:.2e}A, "
+      f"I_critical={I_critical:.2e}A, "
+      f"Bit-flip Rate (1->0): {cdf*100:.5f}%"
+    )
     
     return cdf
   else:
@@ -336,4 +357,105 @@ def validate_config(args, rep_conf):
         print(f"Configuration valid: rep_conf capacity ({rep_conf_capacity} bits) matches q_type width ({q_type_width} bits).")
 
     return True
+  
+def cdf_tail_for_sigma_multiple(sigma_multiple):
+  """One-sided Gaussian tail probability beyond the provided sigma multiple."""
+  return 1.0 - ss.norm.cdf(sigma_multiple)
+
+
+def spread_to_sigma(vth_spread, sigma_multiple):
+  """Convert a +/-Nσ Vth spread to the corresponding 1σ standard deviation."""
+  if sigma_multiple <= 0:
+    raise ValueError("Sigma multiple must be positive")
+  return vth_spread / sigma_multiple
+
+
+def _get_dram_calibration_config():
+  """Fetch DRAM calibration parameters from fi_config with sensible defaults."""
+  nominal_vdd = getattr(fi_config, 'dram_nominal_vdd', 1.4)
+  nominal_refresh_time = getattr(fi_config, 'dram_nominal_refresh_time', 501e-6)
+  vth_spread = getattr(fi_config, 'dram_vth_spread', 0.05)
+  sigma_multiple = getattr(fi_config, 'dram_sigma_multiple', 3.0)
+  nominal_fault_rate = cdf_tail_for_sigma_multiple(sigma_multiple)
+  return {
+      'nominal_vdd': nominal_vdd,
+      'nominal_refresh_time': nominal_refresh_time,
+      'vth_spread': vth_spread,
+      'sigma_multiple': sigma_multiple,
+      'nominal_fault_rate': nominal_fault_rate,
+  }
+
+
+def compute_dram_calibration_scale(dist_args, vth_sigma, target_fault_rate,
+                                   target_refresh_time, nominal_vdd):
+  """Compute the Ioff scaling needed so the nominal condition meets the target fault rate."""
+  tech_node_data, temperature, _ = dist_args
+
+  available_temps = sorted(tech_node_data['Ioff'].keys())
+  temp_diffs = [abs(temp - temperature) for temp in available_temps]
+  closest_temp_idx = temp_diffs.index(min(temp_diffs))
+  selected_temp = available_temps[closest_temp_idx]
+
+  median_Ioff = tech_node_data['Ioff'][selected_temp]
+  cap_F = tech_node_data['CellCap']
+
+  kB = 1.380649e-23
+  q = 1.60217663e-19
+  Vt = (kB * selected_temp) / q
+  n_factor = fi_config.SS * 1e-3 / (Vt * math.log(10))
+  sigma_ln_Ioff = vth_sigma / (n_factor * Vt)
+
+  z_target = ss.norm.isf(target_fault_rate)
+  I_critical = (cap_F * nominal_vdd / 2) / target_refresh_time
+  ln_mu_target = np.log(I_critical) - z_target * sigma_ln_Ioff
+
+  return math.exp(ln_mu_target - np.log(median_Ioff))
+
+
+def get_dram_calibration_scale(dist_args):
+  """Retrieve (or compute) the cached Ioff calibration scale for the provided tech data."""
+  tech_node_data, temperature, selected_size = dist_args
+  params = _get_dram_calibration_config()
+  nominal_vdd = params['nominal_vdd']
+  nominal_refresh_time = params['nominal_refresh_time']
+  vth_spread = params['vth_spread']
+  sigma_multiple = params['sigma_multiple']
+  nominal_fault_rate = params['nominal_fault_rate']
+
+  nominal_sigma = spread_to_sigma(vth_spread, sigma_multiple)
+  cache_key = (
+      id(tech_node_data),
+      temperature,
+      selected_size,
+      nominal_vdd,
+      nominal_refresh_time,
+      vth_spread,
+      sigma_multiple,
+  )
+
+  if cache_key not in _dram_calibration_scale_cache:
+    scale = compute_dram_calibration_scale(
+        dist_args,
+        nominal_sigma,
+        nominal_fault_rate,
+        nominal_refresh_time,
+        nominal_vdd,
+    )
+    _dram_calibration_scale_cache[cache_key] = scale
+  return _dram_calibration_scale_cache[cache_key]
+
+
+def normalize_vth_sigma(raw_sigma):
+  """Interpret caller-provided Vth sigma, allowing +/-Nσ inputs to map to 1σ."""
+  if raw_sigma is None:
+    return None
+
+  params = _get_dram_calibration_config()
+  vth_spread = params['vth_spread']
+  sigma_multiple = params['sigma_multiple']
+
+  if math.isclose(raw_sigma, vth_spread, rel_tol=0.2, abs_tol=1e-6) or raw_sigma > vth_spread:
+    return spread_to_sigma(raw_sigma, sigma_multiple)
+
+  return raw_sigma
   
