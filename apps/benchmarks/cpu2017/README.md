@@ -1,11 +1,11 @@
 
 # Benchmark Hooking and Profiling Integration (Development Workspace)
 
-This repository serves as an active development environment for hooking standardized benchmark suites into the MemSysExplorer profiling and simulation framework. The goal is to create a clean, unified wrapper interface that enables seamless integration of various profilers and simulators (e.g., Sniper, NVBit, Perf, DynamoRIO) with benchmark workloads.
+This repository serves as an active development environment for hooking standardized benchmark suites into the MemSys-Playground profiling and simulation framework. The goal is to create a clean, unified wrapper interface that enables seamless integration of various profilers and simulators (e.g., Sniper, NVBit, Perf, DynamoRIO) with benchmark workloads.
 
 ## Purpose
 
-This directory is under **active development** and serves as a testing ground for integrating benchmark execution into the profiling tools supported by MemSysExplorer. The focus is on enabling dynamic command construction, dataset management, and profiler orchestration through a Python interface (`main.py`).
+This directory is under **active development** and serves as a testing ground for integrating benchmark execution into the profiling tools supported by MemSys-Playground. The focus is on enabling dynamic command construction, dataset management, and profiler orchestration through a Python interface (`main.py`).
 
 ## Supported Benchmarks (Planned)
 

@@ -30,21 +30,27 @@
 # DAMAGE.
 
 cmake_minimum_required(VERSION 3.7)
+project(memsys C)
 
-project(memsys)
+find_package(DynamoRIO REQUIRED)
 
-find_package(DynamoRIO)
-if (NOT DynamoRIO_FOUND)
-  message(FATAL_ERROR "DynamoRIO package required to build")
-endif(NOT DynamoRIO_FOUND)
-
-function (add_client name source_file_list extension_list) 
+function(add_client name source_file_list extension_list)
     add_library(${name} SHARED ${source_file_list})
-    configure_DynamoRIO_client(${name}) 
-    foreach (ext ${extension_list}) 
+    configure_DynamoRIO_client(${name})
+
+    foreach(ext ${extension_list})
         use_DynamoRIO_extension(${name} ${ext})
-    endforeach (ext)
+    endforeach()
 
-endfunction (add_client)
+    # Link libm with plain signature to match DynamoRIO's usage
+    if(UNIX AND NOT APPLE)
+        target_link_libraries(${name} m)
+    endif()
+endfunction()
 
-add_client(memcount "memcount.c;utils.c" "drcontainers;drmgr;drreg;drutil;drx")
+add_client(
+    memcount
+    "memcount.c;utils.c;ws_tsearch.c;hll.c;MurmurHash3.c"
+    "drcontainers;drmgr;drreg;drutil;drx"
+)
+

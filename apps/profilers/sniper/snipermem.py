@@ -48,11 +48,11 @@ level_prefix_map = {
 
 # All possible stats
 all_memory_stats = [
-    "L1-I.loads", "L1-I.stores", "L1-I.read-latency", "L1-I.write-latency", "L1-I.workingset-size",
-    "L1-D.loads", "L1-D.stores", "L1-D.read-latency", "L1-D.write-latency", "L1-D.workingset-size",
-    "L2.loads", "L2.stores", "L2.read-latency", "L2.write-latency", "L2.workingset-size",
-    "L3.loads", "L3.stores", "L3.read-latency", "L3.write-latency", "L3.workingset-size",
-    "dram.read-latency", "dram.reads", "dram.write-latency", "dram.writes", "dram.workingset-size"
+    "L1-I.loads", "L1-I.stores", "L1-I.workingset-size",
+    "L1-D.loads", "L1-D.stores", "L1-D.workingset-size",
+    "L2.loads", "L2.stores",  "L2.workingset-size",
+    "L3.loads", "L3.stores", "L3.workingset-size",
+    "dram.reads", "dram.writes", "dram.workingset-size"
 ]
 
 if level is None:

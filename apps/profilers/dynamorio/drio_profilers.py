@@ -17,12 +17,15 @@ class DrioProfilers(FrontendInterface):
               A list including the executable and its arguments.
             - action : str
               One of "profiling", "extract_metrics", or "both".
+            - config_file : str, optional
+              Path to memcount configuration file.
 
         """
         
         super().__init__(**kwargs)
         self.executable_cmd = " ".join(self.config.get("executable", []))
         self.action = self.config.get("action")
+        self.config_file = self.config.get("config")
 
         #Get the directory of this script 
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -84,8 +87,14 @@ class DrioProfilers(FrontendInterface):
             self.run,
             "-c",
             self.client,
-            "--",
-        ] + executable_with_args
+        ]
+        
+        # Add config file if specified
+        if self.config_file:
+            drio_command.extend(["-config", self.config_file])
+        
+        drio_command.append("--")
+        drio_command.extend(executable_with_args)
         return drio_command, report
 
     # collect all the data that will be stored in a log file
@@ -157,17 +166,19 @@ class DrioProfilers(FrontendInterface):
             reads = re.search(r"number of reads: (\d+)", toparse).group(1)
             writes = re.search(r"number of writes: (\d+)", toparse).group(1)
             working_set_size = re.search(r"working set size: (\d+)", toparse).group(1)
-            exec_time = re.search(r"execution time: (\d+) ms", toparse).group(1)
-
-            exec_time_s = int(exec_time) / 1000
+            
+            # Note: DynamoRIO memcount doesn't provide execution time, so we'll use a placeholder
+            # or calculate frequency differently
+            total_memory_refs = int(memory_refs)
 
             # Update the data dictionary with the extracted values
             self.data.update({
-                "read_freq": float(reads) / float(exec_time_s),
+                "total_memory_refs": total_memory_refs,
                 "total_reads": int(reads),
-                "write_freq": float(writes) / float(exec_time_s),
                 "total_writes": int(writes),
                 "workingset_size": int(working_set_size),
+                # Without execution time, we can't calculate frequency, so omit these fields
+                # or set them to 0 if required by downstream code
             })
             
             return self.data
@@ -183,9 +194,9 @@ class DrioProfilers(FrontendInterface):
         Returns
         -------
         list
-            Required argument names (["executable"]).
+            Required argument names (["executable", "config"]).
         """
-        return ["executable"] 
+        return ["executable", "config"] 
 
     @classmethod
     def required_extract_args(cls, action):

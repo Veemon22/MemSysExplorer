@@ -34,32 +34,59 @@
 #include <stdio.h>
 #include <string.h> /* for memset */
 #include <stddef.h> /* for offsetof */
-#include <stdint.h>
+#include <math.h>
 #include "dr_api.h"
 #include "drmgr.h"
 #include "drreg.h"
 #include "drutil.h"
 #include "drx.h"
 #include "utils.h"
+#include "ws_tsearch.h"
+#include "hll.h"
 
-#define CACHE_LINE_SIZE 64
-#define WORKING_SET_TABLE_SIZE 1048576  // 2^20 entries = ~8 MB
+/* Configuration structure */
+typedef struct {
+    /* Cache and memory parameters */
+    uint cache_line_size;
+    uint hll_bits;
+    uint sample_hll_bits;
+    uint sample_window_refs;
+    uint max_mem_refs;
+    
+    /* Output control */
+    bool enable_trace;
+    bool wss_stat_tracking;
+    
+    /* WSS tracking method control */
+    bool wss_exact_tracking;    /* Enable exact WSS tracking (memory intensive) */
+    bool wss_hll_tracking;      /* Enable HLL-based WSS tracking (memory efficient) */
+    
+    /* File paths */
+    char trace_file_prefix[256];
+    char csv_file_prefix[256];
+} memcount_config_t;
 
-//File Settings
-static file_t global_trace_file = INVALID_FILE;
-static void *trace_file_mutex;
-static bool enable_tracing = true;
+/* Global configuration with default values */
+static memcount_config_t config = {
+    .cache_line_size = 64,
+    .hll_bits = 4,
+    .sample_hll_bits = 4,
+    .sample_window_refs = 1000,
+    .max_mem_refs = 8192,
+    .enable_trace = true,
+    .wss_stat_tracking = true,
+    .wss_exact_tracking = true,
+    .wss_hll_tracking = true,
+    .trace_file_prefix = "memtrace_tid",
+    .csv_file_prefix = "wss_samples_tid"
+};
 
-//Sampling Settings
-static bool sampling_enabled = false; 
-static uint64 sampling_interval = 10; // sample every 100th memory reference
-static uint64 global_ref_counter = 0;
+/* Derived values calculated from config */
+static uintptr_t cache_line_mask;
+static size_t mem_buf_size;
 
-//Working Set Settings
-static uintptr_t working_set_table[WORKING_SET_TABLE_SIZE];
-static void *working_set_mutex;
-static uint64 start_time_ms = 0;
-static uint64 end_time_ms = 0;
+static HLL global_hll;
+static void *hll_mutex;
 
 /* Each mem_ref_t includes the type of reference (read or write),
  * the address referenced, and the size of the reference.
@@ -69,14 +96,10 @@ typedef struct _mem_ref_t {
     void *addr;
     size_t size;
     app_pc pc;
+    uint64 timestamp;
 } mem_ref_t;
 
-/* Max number of mem_ref a buffer can have */
-#define MAX_NUM_MEM_REFS 8192
-/* The size of memory buffer for holding mem_refs. When it fills up,
- * we dump data from the buffer to the file.
- */
-#define MEM_BUF_SIZE (sizeof(mem_ref_t) * MAX_NUM_MEM_REFS)
+/* Memory buffer size will be calculated from config at runtime */
 
 /* thread private counter */
 typedef struct {
@@ -89,6 +112,20 @@ typedef struct {
     uint64 num_reads;
     uint64 num_writes;
     uint64 working_set;
+    ws_ctx_t *ws;
+    HLL hll;
+
+    /*Sampling API*/
+    ws_ctx_t *sample_ws;     /* exact WSS for the current window */
+    HLL       sample_hll;    /* HLL WSS for the current window */
+    uint64    sample_ref_count;
+    uint64    sample_idx;    /* window number (0,1,2,...) */
+    file_t    sample_log;    /* optional CSV per-thread; can omit if not needed */
+
+    /* Trace output */
+    file_t    trace_file;    /* Memory trace file per thread */
+    bool      enable_trace;  /* Flag to enable/disable trace output */
+
 } per_thread_t;
 
 /* Cross-instrumentation-phase data. */
@@ -133,6 +170,168 @@ code_cache_exit(void);
 static void
 instrument_mem(void *drcontext, instrlist_t *ilist, instr_t *where, app_pc pc,
                instr_t *memref_instr, int pos, bool write);
+static void
+instrument_mem_direct(void *drcontext, instrlist_t *ilist, instr_t *where, app_pc pc,
+                     instr_t *memref_instr, int pos, bool write);
+
+//Sampling Helper
+/* Get high-resolution timestamp */
+static uint64 get_timestamp(void) {
+    return dr_get_microseconds();
+}
+
+/* Direct trace function - called immediately for each memory access */
+static void direct_trace_write(void *addr, bool write, size_t size, app_pc pc) {
+    per_thread_t *data = drmgr_get_tls_field(dr_get_current_drcontext(), tls_index);
+    
+    if (data->enable_trace && data->trace_file != INVALID_FILE) {
+        char trace_line[64];
+        int len = dr_snprintf(trace_line, sizeof(trace_line), "%llu,%p,%d,%zu\n",
+                            get_timestamp(), addr, write ? 1 : 0, size);
+        if (len > 0) {
+            ssize_t written = dr_write_file(data->trace_file, trace_line, len);
+            if (written != len) {
+                /* Write failed - disable tracing to prevent further crashes */
+                dr_fprintf(STDERR, "Warning: Trace write failed, disabling trace output\n");
+                dr_close_file(data->trace_file);
+                data->trace_file = INVALID_FILE;
+                data->enable_trace = false;
+            }
+        }
+    }
+}
+
+/* Parse a simple key=value configuration file */
+static bool parse_config_file(const char *config_path) {
+    file_t file;
+    char buffer[2048];
+    char *key, *value;
+    int bytes_read;
+    
+    if (!config_path) return false;
+    
+    file = dr_open_file(config_path, DR_FILE_READ);
+    if (file == INVALID_FILE) {
+        dr_fprintf(STDERR, "Warning: Could not open config file %s, using defaults\n", config_path);
+        return false;
+    }
+    
+    /* Read entire file into buffer */
+    bytes_read = dr_read_file(file, buffer, sizeof(buffer) - 1);
+    dr_close_file(file);
+    
+    if (bytes_read <= 0) return false;
+    
+    buffer[bytes_read] = '\0';  /* Null terminate */
+    
+    /* Parse line by line */
+    char *line = buffer;
+    char *next_line;
+    
+    while (line && *line) {
+        /* Find end of line */
+        next_line = strchr(line, '\n');
+        if (next_line) {
+            *next_line = '\0';
+            next_line++;
+        }
+        
+        /* Remove carriage return if present */
+        char *cr = strchr(line, '\r');
+        if (cr) *cr = '\0';
+        
+        /* Skip comments and empty lines */
+        if (line[0] == '#' || line[0] == '\0') {
+            line = next_line;
+            continue;
+        }
+        
+        /* Parse key=value */
+        key = line;
+        value = strchr(line, '=');
+        if (!value) {
+            line = next_line;
+            continue;
+        }
+        
+        *value = '\0';  /* Terminate key string */
+        value++;        /* Point to value */
+        
+        /* Trim whitespace */
+        while (*key == ' ' || *key == '\t') key++;
+        while (*value == ' ' || *value == '\t') value++;
+        
+        /* Parse configuration values */
+        if (strcmp(key, "cache_line_size") == 0) {
+            config.cache_line_size = (uint)atoi(value);
+        } else if (strcmp(key, "hll_bits") == 0) {
+            config.hll_bits = (uint)atoi(value);
+        } else if (strcmp(key, "sample_hll_bits") == 0) {
+            config.sample_hll_bits = (uint)atoi(value);
+        } else if (strcmp(key, "sample_window_refs") == 0) {
+            config.sample_window_refs = (uint)atoi(value);
+        } else if (strcmp(key, "max_mem_refs") == 0) {
+            config.max_mem_refs = (uint)atoi(value);
+        } else if (strcmp(key, "enable_trace") == 0) {
+            config.enable_trace = (strcmp(value, "true") == 0 || strcmp(value, "1") == 0);
+        } else if (strcmp(key, "wss_stat_tracking") == 0) {
+            config.wss_stat_tracking = (strcmp(value, "true") == 0 || strcmp(value, "1") == 0);
+        } else if (strcmp(key, "wss_exact_tracking") == 0) {
+            config.wss_exact_tracking = (strcmp(value, "true") == 0 || strcmp(value, "1") == 0);
+        } else if (strcmp(key, "wss_hll_tracking") == 0) {
+            config.wss_hll_tracking = (strcmp(value, "true") == 0 || strcmp(value, "1") == 0);
+        } else if (strcmp(key, "trace_file_prefix") == 0) {
+            strncpy(config.trace_file_prefix, value, sizeof(config.trace_file_prefix) - 1);
+        } else if (strcmp(key, "csv_file_prefix") == 0) {
+            strncpy(config.csv_file_prefix, value, sizeof(config.csv_file_prefix) - 1);
+        }
+        
+        line = next_line;
+    }
+    
+    return true;
+}
+
+/* Initialize derived config values */
+static void init_config_derived_values(void) {
+    cache_line_mask = (~(uintptr_t)(config.cache_line_size - 1));
+    mem_buf_size = sizeof(mem_ref_t) * config.max_mem_refs;
+}
+
+static void finalize_sample_window(per_thread_t *t) {
+    if (!t) return;
+
+    /* exact WSS (only if enabled) */
+    ws_stats_t s = {0};
+    if (config.wss_exact_tracking && t->sample_ws) {
+        ws_get_stats(t->sample_ws, &s);
+    }
+
+    /* HLL WSS (approx, only if enabled) */
+    double wss_est = 0.0;
+    if (config.wss_hll_tracking) {
+        wss_est = hll_count(&t->sample_hll);
+    }
+
+    /* optional: log one CSV line per window */
+    if (t->sample_log != INVALID_FILE) {
+        dr_fprintf(t->sample_log, "%llu,%llu,%.0f,%u\n",
+                   (unsigned long long)t->sample_idx,
+                   (unsigned long long)s.distinct,
+                   wss_est,
+                   t->sample_ref_count);
+    }
+
+    /* reset for next window */
+    if (config.wss_exact_tracking && t->sample_ws) {
+        ws_reset(t->sample_ws);       /* destroys nodes & zeros stats */
+    }
+    if (config.wss_hll_tracking) {
+        hll_reset(&t->sample_hll);    /* zero registers, keep alloc */
+    }
+    t->sample_ref_count = 0;
+    t->sample_idx++;
+}
 
 DR_EXPORT void
 
@@ -146,19 +345,43 @@ dr_client_main(client_id_t id, int argc, const char *argv[])
                                   NULL, /* optional name of operation we should follow */
                                   0 };  /* numeric priority */
     dr_set_client_name("Custom Client 'memcount'", NULL);
+    
+    /* Parse command line arguments */
+    const char *config_file = NULL;
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], "-no_trace") == 0) {
+            config.enable_trace = false;
+        } else if (strcmp(argv[i], "-trace") == 0) {
+            config.enable_trace = true;
+        } else if (strcmp(argv[i], "-config") == 0 && i + 1 < argc) {
+            config_file = argv[i + 1];
+            i++; /* Skip the config file path argument */
+        }
+    }
+    
+    /* Load configuration file if provided */
+    if (config_file) {
+        if (parse_config_file(config_file)) {
+            dr_fprintf(STDERR, "Config loaded: sample_window_refs=%u\n", config.sample_window_refs);
+        } else {
+            dr_fprintf(STDERR, "Failed to load config file: %s\n", config_file);
+        }
+    } else {
+        dr_fprintf(STDERR, "No config file specified, using defaults: sample_window_refs=%u\n", config.sample_window_refs);
+    }
+    
+    /* Initialize derived configuration values */
+    init_config_derived_values();
         page_size = dr_page_size();
     drmgr_init();
     drutil_init();
     client_id = id;
     mutex = dr_mutex_create();
-    working_set_mutex = dr_mutex_create();
-    memset(working_set_table, 0, sizeof(working_set_table));
-
-    //start_time_ms = dr_get_milliseconds();
-    dr_set_client_name("Custom Client 'memcount'", NULL);
-    trace_file_mutex = dr_mutex_create();
-    
     dr_register_exit_event(event_exit);
+
+    hll_mutex = dr_mutex_create();
+    DR_ASSERT(hll_init(&global_hll, config.hll_bits) == 0);
+
     if (!drmgr_register_thread_init_event(event_thread_init) ||
         !drmgr_register_thread_exit_event(event_thread_exit) ||
         !drmgr_register_bb_app2app_event(event_bb_app2app, &priority) ||
@@ -190,22 +413,25 @@ event_exit()
 {
     char msg[512];
     int len;
-
-    end_time_ms = dr_get_milliseconds();
-
-    uint64 elapsed_ms = end_time_ms - start_time_ms;
+    double hll_est_lines = hll_count(&global_hll);
 
     len = dr_snprintf(msg, sizeof(msg) / sizeof(msg[0]),
                         "Instrumentation results:\n"
                         "  saw %llu memory references\n"
                         "  number of reads: %llu\n"
                         "  number of writes: %llu\n"
-                        "  working set size: %llu\n"
-			"  execution time: %llu ms\n",
-                        global_num_refs, global_num_reads, global_num_writes, global_working_set, elapsed_ms);
+                        "  working set size: %llu\n",
+                        global_num_refs, global_num_reads, global_num_writes, global_working_set);
     DR_ASSERT (len > 0);
     NULL_TERMINATE_BUFFER(msg);
     DISPLAY_STRING(msg);
+
+    /* Print HLL block */
+    len = dr_snprintf(msg, sizeof(msg)/sizeof(msg[0]),
+		    "Instrumentation results (HLL estimate):\n"
+		    "  estimated unique lines: %llu\n",
+		    (unsigned long long) hll_est_lines);
+    NULL_TERMINATE_BUFFER(msg); DISPLAY_STRING(msg);
     code_cache_exit();
 
     if (!drmgr_unregister_tls_field(tls_index) ||
@@ -215,13 +441,6 @@ event_exit()
     drreg_exit() != DRREG_SUCCESS)
     DR_ASSERT(false);
 
-    if (enable_tracing && global_trace_file != INVALID_FILE) {
-	    dr_close_file(global_trace_file);
-	    global_trace_file = INVALID_FILE;
-    }
-
-    dr_mutex_destroy(trace_file_mutex);
-    dr_mutex_destroy(working_set_mutex);
     dr_mutex_destroy(mutex);
     drutil_exit();
     drmgr_exit();
@@ -242,28 +461,69 @@ event_thread_init(void *drcontext)
     /* allocate thread private data */
     data = dr_thread_alloc(drcontext, sizeof(per_thread_t));
     drmgr_set_tls_field(drcontext, tls_index, data);
-    data->buf_base = dr_thread_alloc(drcontext, MEM_BUF_SIZE);
+    data->buf_base = dr_thread_alloc(drcontext, mem_buf_size);
     data->buf_ptr = data->buf_base;
     /* set buf_end to be negative of address of buffer end for the lea later */
-    data->buf_end = -(ptr_int_t)(data->buf_base + MEM_BUF_SIZE);
+    data->buf_end = -(ptr_int_t)(data->buf_base + mem_buf_size);
     data->num_refs = 0;
     data->num_reads = 0;
     data->num_writes = 0;
     data->working_set = 0;
-    start_time_ms = dr_get_milliseconds();
+    if (config.wss_exact_tracking) {
+        data->ws = ws_create();
+    } else {
+        data->ws = NULL;
+    }
+    DR_ASSERT(hll_init(&data->hll, config.hll_bits) == 0);
 
-    if (enable_tracing && global_trace_file == INVALID_FILE) {
-	    dr_mutex_lock(trace_file_mutex);
-	    if (global_trace_file == INVALID_FILE) { 
-		    global_trace_file = dr_open_file("maap_trace.out", DR_FILE_WRITE_APPEND);
-		    DR_ASSERT(global_trace_file != INVALID_FILE);
-	    }    
-	    dr_mutex_unlock(trace_file_mutex);
+    /* per-window sampling (only if WSS stats enabled) */
+    if (config.wss_stat_tracking) {
+        if (config.wss_exact_tracking) {
+            data->sample_ws = ws_create();
+        } else {
+            data->sample_ws = NULL;
+        }
+        
+        if (config.wss_hll_tracking) {
+            DR_ASSERT(hll_init(&data->sample_hll, config.sample_hll_bits) == 0);
+        }
+        
+        data->sample_ref_count = 0;
+        data->sample_idx = 0;
+    } else {
+        data->sample_ws = NULL;
+        data->sample_ref_count = 0;
+        data->sample_idx = 0;
+    }
+
+    /* optional: CSV per-thread */
+    if (config.wss_stat_tracking) {
+        char fname[384];
+        dr_snprintf(fname, sizeof(fname), "%s%u.csv", config.csv_file_prefix, dr_get_thread_id(drcontext));
+        data->sample_log = dr_open_file(fname, DR_FILE_WRITE_OVERWRITE);
+        if (data->sample_log != INVALID_FILE) {
+            dr_fprintf(data->sample_log, "window,distinct_exact,hll_est,total_refs\n");
+        }
+    } else {
+        data->sample_log = INVALID_FILE;
+    }
+
+    /* Initialize trace file */
+    data->enable_trace = config.enable_trace;
+    if (data->enable_trace) {
+        char trace_fname[384];
+        dr_snprintf(trace_fname, sizeof(trace_fname), "%s%u.csv", config.trace_file_prefix, dr_get_thread_id(drcontext));
+        data->trace_file = dr_open_file(trace_fname, DR_FILE_WRITE_OVERWRITE);
+        if (data->trace_file != INVALID_FILE) {
+            char header[] = "timestamp,addr,op,size\n";
+            dr_write_file(data->trace_file, header, strlen(header));
+        }
+    } else {
+        data->trace_file = INVALID_FILE;
     }
 
     dr_log(drcontext, DR_LOG_ALL, 1, "memcount: set up for thread " TIDFMT "\n",
            dr_get_thread_id(drcontext));
-
 }
 
 static void 
@@ -273,6 +533,41 @@ event_thread_exit(void *drcontext)
 
     memtrace(drcontext);
     data = drmgr_get_tls_field(drcontext, tls_index);
+
+    /* flush last partial window (if any) */
+    if (config.wss_stat_tracking && data->sample_ref_count > 0)
+    	finalize_sample_window(data);
+
+    /* close CSV (if opened) */
+    if (data->sample_log != INVALID_FILE)
+    	dr_close_file(data->sample_log);
+
+    /* close trace file (if opened) */
+    if (data->trace_file != INVALID_FILE)
+    	dr_close_file(data->trace_file);
+
+    /* destroy windowed structures */
+    if (config.wss_stat_tracking) {
+        if (config.wss_exact_tracking && data->sample_ws) {
+            ws_destroy(data->sample_ws);
+        }
+        if (config.wss_hll_tracking) {
+            hll_destroy(&data->sample_hll);
+        }
+    }
+
+    ws_stats_t s = {0};
+    if (config.wss_exact_tracking) {
+        ws_get_stats(data->ws, &s);
+        data->working_set = s.distinct;    /* #lines seen exactly once */
+    } else {
+        data->working_set = 0; /* Use HLL estimate instead */
+    }
+    if (data->ws) {
+        ws_destroy(data->ws);
+        data->ws = NULL;
+    }
+
     dr_mutex_lock(mutex);
     global_num_refs += data->num_refs;
     global_num_reads += data->num_reads;
@@ -280,7 +575,12 @@ event_thread_exit(void *drcontext)
     global_working_set += data->working_set;
     dr_mutex_unlock(mutex);
 
-    dr_thread_free(drcontext, data->buf_base, MEM_BUF_SIZE);
+    dr_mutex_lock(hll_mutex);
+    hll_merge(&global_hll, &data->hll); 
+    dr_mutex_unlock(hll_mutex);
+    hll_destroy(&data->hll);
+
+    dr_thread_free(drcontext, data->buf_base, mem_buf_size);
     dr_thread_free(drcontext, data, sizeof(per_thread_t));
 }
 
@@ -338,118 +638,98 @@ event_bb_insert(void *drcontext, void *tag, instrlist_t *bb, instr_t *where,
     DR_ASSERT(instr_is_app(instr_operands));
     DR_ASSERT(last_pc != NULL);
 
-    if (instr_reads_memory(instr_operands)) {
-        for (i = 0; i < instr_num_srcs(instr_operands); i++) {
-            if (opnd_is_memory_reference(instr_get_src(instr_operands, i))) {
-                instrument_mem(drcontext, bb, where, last_pc, instr_operands, i, false);
+    /* Use direct trace instrumentation for tracing, buffer-based for stats */
+    if (config.enable_trace) {
+        if (instr_reads_memory(instr_operands)) {
+            for (i = 0; i < instr_num_srcs(instr_operands); i++) {
+                if (opnd_is_memory_reference(instr_get_src(instr_operands, i))) {
+                    instrument_mem_direct(drcontext, bb, where, last_pc, instr_operands, i, false);
+                }
+            }
+        }
+        if (instr_writes_memory(instr_operands)) {
+            for (i = 0; i < instr_num_dsts(instr_operands); i++) {
+                if (opnd_is_memory_reference(instr_get_dst(instr_operands, i))) {
+                    instrument_mem_direct(drcontext, bb, where, last_pc, instr_operands, i, true);
+                }
             }
         }
     }
-    if (instr_writes_memory(instr_operands)) {
-        for (i = 0; i < instr_num_dsts(instr_operands); i++) {
-            if (opnd_is_memory_reference(instr_get_dst(instr_operands, i))) {
-                instrument_mem(drcontext, bb, where, last_pc, instr_operands, i, true);
+    
+    /* Use buffer-based instrumentation for statistical tracking */
+    if (config.wss_exact_tracking || config.wss_stat_tracking) {
+        if (instr_reads_memory(instr_operands)) {
+            for (i = 0; i < instr_num_srcs(instr_operands); i++) {
+                if (opnd_is_memory_reference(instr_get_src(instr_operands, i))) {
+                    instrument_mem(drcontext, bb, where, last_pc, instr_operands, i, false);
+                }
+            }
+        }
+        if (instr_writes_memory(instr_operands)) {
+            for (i = 0; i < instr_num_dsts(instr_operands); i++) {
+                if (opnd_is_memory_reference(instr_get_dst(instr_operands, i))) {
+                    instrument_mem(drcontext, bb, where, last_pc, instr_operands, i, true);
+                }
             }
         }
     }
     return DR_EMIT_DEFAULT;
 }
 
-static bool insert_line_addr(uintptr_t line_addr) {
-    size_t idx = (line_addr >> 6) % WORKING_SET_TABLE_SIZE;
-
-    for (size_t i = 0; i < WORKING_SET_TABLE_SIZE; i++) {
-        size_t probe_idx = (idx + i) % WORKING_SET_TABLE_SIZE;
-
-        if (working_set_table[probe_idx] == 0) {
-            working_set_table[probe_idx] = line_addr;
-            return true;  // new unique line
-        } else if (working_set_table[probe_idx] == line_addr) {
-            return false; // already seen
-        }
-    }
-    return false;
-}
-
 static void 
 memtrace(void *drcontext)
 {
-    per_thread_t *data = drmgr_get_tls_field(drcontext, tls_index);
-    mem_ref_t *mem_ref = (mem_ref_t *)data->buf_base;
-    int num_refs = (int)((mem_ref_t *)data->buf_ptr - mem_ref);
+    per_thread_t *data;
+    int num_refs;
     int num_reads = 0;
     int num_writes = 0;
-    
-    dr_fprintf(STDERR, "Thread %d saw %d refs\n", dr_get_thread_id(drcontext), num_refs);
-    dr_fprintf(STDERR, "Current global_working_set = %llu\n", global_working_set);
+    int working_set = 0;
+    mem_ref_t *mem_ref;
 
-    thread_id_t tid = dr_get_thread_id(drcontext);
+    data = drmgr_get_tls_field(drcontext, tls_index);
+    mem_ref = (mem_ref_t *)data->buf_base;
+    num_refs = (int)((mem_ref_t *)data->buf_ptr - mem_ref);
 
-//    for (int i = 0; i < num_refs; i++) {
-//	    uintptr_t addr = (uintptr_t)mem_ref->addr;    
-//	    uintptr_t line_addr = addr & ~(CACHE_LINE_SIZE - 1); // align
+    for(int i = 0; i < num_refs; i++) {
+        /* Assign timestamp to this memory reference */
+        mem_ref->timestamp = get_timestamp();
+	
+	uintptr_t key = ((uintptr_t)mem_ref->addr) & cache_line_mask;
+        
+	if (config.wss_exact_tracking) {
+		ws_record(data->ws, key);
+	}
+	hll_add(&data->hll, &key, sizeof(key));
 
-//	    dr_mutex_lock(working_set_mutex);
-//	    if (insert_line_addr(line_addr)) {
-//		    global_working_set++;    
-//	    }
-//	    dr_mutex_unlock(working_set_mutex);
-//	    if (mem_ref->write)
-//		    num_writes++;
-//	    else
-//		    num_reads++;
-//	    ++mem_ref;
-//	    //   }
+	/* WSS sampling only if enabled */
+	if (config.wss_stat_tracking) {
+		if (config.wss_exact_tracking && data->sample_ws) {
+			ws_record(data->sample_ws, key);
+		}
+		if (config.wss_hll_tracking) {
+			hll_add(&data->sample_hll, &key, sizeof key);
+		}
+	}
 
-
-    uint64 timestamp = dr_get_milliseconds();
-
-    for (int i = 0; i < num_refs; i++) {    
-	    global_ref_counter++;
-   
-	    if (sampling_enabled && (global_ref_counter % sampling_interval != 0)) {        
-		    ++mem_ref;
-		    continue;    
-	    }
-
-	    uintptr_t addr = (uintptr_t)mem_ref->addr;
-	    uintptr_t line_addr = addr & ~(CACHE_LINE_SIZE - 1); // align
-	    
-	    dr_mutex_lock(working_set_mutex);
-	    if (insert_line_addr(line_addr)) {
-		    global_working_set++;
-	    }
-    
-	    dr_mutex_unlock(working_set_mutex);
-	    if (mem_ref->write)
-		    num_writes++;
-	    else
-		    num_reads++;
-	    
-	    char trace_line[128];
-	    int len;
-   
-	    if (enable_tracing && global_trace_file != INVALID_FILE) {
-		    len = dr_snprintf(trace_line, sizeof(trace_line),
-                          "%llu,%p,%c,%zu,%d,%p\n",
-                          timestamp,              // Timestamp
-                          mem_ref->addr,          // Address
-                          mem_ref->write ? 'W' : 'R',  // Access Type
-                          mem_ref->size,          // Access Size
-                          tid,                    // Thread ID
-                          mem_ref->pc);           // Instruction PC  
-		    if (len > 0)        
-			    dr_write_file(global_trace_file, trace_line, len);
-	    }
-
-	    DR_ASSERT(len > 0);
-	    dr_mutex_lock(trace_file_mutex);
-	    dr_write_file(global_trace_file, trace_line, len);
-	    dr_mutex_unlock(trace_file_mutex);
-	    ++mem_ref;
+        /* Trace output is now handled directly via instrument_mem_direct() */
+	
+        if(mem_ref->write) {
+            num_writes++;
+        } else {
+            num_reads++;
+        }
+        ++mem_ref;
+	
+	/* Sample window tracking only if WSS stats enabled */
+	if (config.wss_stat_tracking) {
+		data->sample_ref_count++;
+		if (data->sample_ref_count == config.sample_window_refs) {
+			finalize_sample_window(data);   // this should reset sample_ref_count to 0
+		}
+	}
     }
 
-    memset(data->buf_base, 0, MEM_BUF_SIZE);
+    memset(data->buf_base, 0, mem_buf_size);
     data->num_refs += num_refs;
     data->num_reads += num_reads;
     data->num_writes += num_writes;
@@ -637,5 +917,47 @@ instrument_mem(void *drcontext, instrlist_t *ilist, instr_t *where, app_pc pc,
     instrlist_meta_preinsert(ilist, where, restore);
     if (drreg_unreserve_register(drcontext, ilist, where, reg1) != DRREG_SUCCESS ||
         drreg_unreserve_register(drcontext, ilist, where, reg2) != DRREG_SUCCESS)
+        DR_ASSERT(false);
+}
+
+/* 
+ * Direct instrumentation that calls our trace function immediately
+ * instead of using the buffer system - much simpler and avoids buffer overflow
+ */
+static void
+instrument_mem_direct(void *drcontext, instrlist_t *ilist, instr_t *where, app_pc pc,
+                     instr_t *memref_instr, int pos, bool write)
+{
+    reg_id_t reg1;
+    opnd_t ref;
+    
+    if (write)
+        ref = instr_get_dst(memref_instr, pos);
+    else
+        ref = instr_get_src(memref_instr, pos);
+
+    /* Reserve a register for address computation */
+    if (drreg_reserve_register(drcontext, ilist, where, NULL, &reg1) != DRREG_SUCCESS) {
+        DR_ASSERT(false);
+        return;
+    }
+
+    /* Get memory address into register */
+    if (!drutil_insert_get_mem_addr(drcontext, ilist, where, ref, reg1, DR_REG_NULL)) {
+        DR_ASSERT(false);
+        drreg_unreserve_register(drcontext, ilist, where, reg1);
+        return;
+    }
+
+    /* Insert a clean call to our direct trace function */
+    dr_insert_clean_call(drcontext, ilist, where, (void *)direct_trace_write, 
+                        false, 4,
+                        opnd_create_reg(reg1),                 /* addr in register */
+                        OPND_CREATE_INT32(write),              /* write flag */
+                        OPND_CREATE_INT32(drutil_opnd_mem_size_in_bytes(ref, memref_instr)), /* size */
+                        OPND_CREATE_INTPTR(pc));               /* pc */
+
+    /* Restore register */
+    if (drreg_unreserve_register(drcontext, ilist, where, reg1) != DRREG_SUCCESS)
         DR_ASSERT(false);
 }

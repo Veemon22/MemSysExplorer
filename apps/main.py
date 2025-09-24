@@ -119,6 +119,8 @@ def main():
             parser.add_argument(f"--{arg}", required=True, nargs=argparse.REMAINDER)
         elif arg == "level":
             parser.add_argument(f"--{arg}", required=False, choices=["l1", "l2", "l3", "dram"])
+        elif arg == "config":
+            parser.add_argument(f"--{arg}", required=False, help="Path to profiler configuration file")
         else:
             parser.add_argument(f"--{arg}", required=True)
 

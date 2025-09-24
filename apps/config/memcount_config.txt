@@ -1,0 +1,22 @@
+# MemCount Configuration File
+# This file controls the behavior of the memcount DynamoRIO client
+# Format: key=value (one per line)
+
+# Cache and Memory Parameters
+cache_line_size=64
+hll_bits=8
+sample_hll_bits=8
+sample_window_refs=2000
+max_mem_refs=8192
+
+# Output Control
+enable_trace=false
+wss_stat_tracking=true
+
+# WSS Tracking Methods
+wss_exact_tracking=true
+wss_hll_tracking=true
+
+# File Prefixes (no file extension)
+trace_file_prefix=memtrace_tid
+csv_file_prefix=wss_samples_tid

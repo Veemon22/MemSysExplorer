@@ -107,8 +107,6 @@ class SniperConfig(PatternConfig):
             workingset_size = 0
 
             for prefix in prefixes:
-                read_latency += get_value(f"{prefix}.read-latency")[core_id]
-                write_latency += get_value(f"{prefix}.write-latency")[core_id]
                 total_reads += get_value(f"{prefix}.loads")[core_id]
                 total_writes += get_value(f"{prefix}.stores")[core_id]
                 workingset_size += get_value(f"{prefix}.workingset-size")[core_id]

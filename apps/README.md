@@ -6,7 +6,7 @@
 - **Lillian Pentecost** (Amherst College)
 - **Olivia Fann** (Amherst College)
 - **Tania Perehinets** (Smith College)
-
+---
 
 # Getting Started
 
