@@ -34,6 +34,9 @@ project(memsys C)
 
 find_package(DynamoRIO REQUIRED)
 
+# Add the common library
+add_subdirectory(../../../common common)
+
 function(add_client name source_file_list extension_list)
     add_library(${name} SHARED ${source_file_list})
     configure_DynamoRIO_client(${name})
@@ -41,6 +44,9 @@ function(add_client name source_file_list extension_list)
     foreach(ext ${extension_list})
         use_DynamoRIO_extension(${name} ${ext})
     endforeach()
+
+    # Link the common library
+    target_link_libraries(${name} profiler_common)
 
     # Link libm with plain signature to match DynamoRIO's usage
     if(UNIX AND NOT APPLE)
@@ -50,7 +56,7 @@ endfunction()
 
 add_client(
     memcount
-    "memcount.c;utils.c;ws_tsearch.c;hll.c;MurmurHash3.c"
+    "memcount.c;utils.c"
     "drcontainers;drmgr;drreg;drutil;drx"
 )
 

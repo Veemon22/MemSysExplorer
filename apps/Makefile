@@ -12,7 +12,7 @@ NVBIT_DIR := $(APPS_HOME)/profilers/nvbit
 PERF_DIR := $(APPS_HOME)/profilers/perf
 DOCS_DIR := $(APPS_HOME)/docs
 
-.PHONY: all dynamorio sniper nvbit perf ncu docs clean clean_docs
+.PHONY: all dynamorio sniper nvbit perf ncu docs clean clean_docs clean_builds
 
 # Default target: build everything
 all: dynamorio sniper nvbit perf ncu docs
@@ -63,7 +63,7 @@ docs:
 	@echo "Documentation built at $(DOCS_DIR)/_build/html"
 
 # Clean all profilers and docs
-clean: clean_dynamorio clean_sniper clean_nvbit clean_perf clean_docs clean_pycache
+clean: clean_dynamorio clean_sniper clean_nvbit clean_perf clean_docs clean_pycache clean_builds
 	@rm -f $(JSON_FILE)
 	@echo "         Cleaning Completed                "
 
@@ -97,3 +97,15 @@ clean_docs:
 	@echo "Cleaning documentation build directory..."
 	rm -rf $(DOCS_DIR)/build && rm -rf $(DOCS_DIR)/source/*.rst
 	@echo "Documentation build directory removed."
+
+# Clean build directories
+clean_builds:
+	@echo "Cleaning build directories..."
+	@echo "Removing temp build directories..."
+	find $(APPS_HOME)/temp -name "build" -type d -exec rm -rf {} + 2>/dev/null || true
+	@echo "Removing common library build directories..."
+	rm -rf $(APPS_HOME)/profilers/common/build
+	@echo "Removing generated protobuf files..."
+	find $(APPS_HOME)/tools -name "*_pb2.py" -delete 2>/dev/null || true
+	find $(APPS_HOME)/tools -name "*.pyc" -delete 2>/dev/null || true
+	@echo "Build directories cleaned."
