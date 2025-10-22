@@ -2,8 +2,12 @@
 cmake_minimum_required(VERSION 3.7)
 project(profiler_common C CXX)
 
-# Try to find protobuf
+# Try to find protobuf and protobuf-c
 find_package(Protobuf QUIET)
+find_package(PkgConfig QUIET)
+if(PKG_CONFIG_FOUND)
+    pkg_check_modules(PROTOBUF_C QUIET libprotobuf-c)
+endif()
 
 # Always build the core utilities
 set(CORE_SOURCES
@@ -13,22 +17,74 @@ set(CORE_SOURCES
     src/environment_capture.c
 )
 
-# Add protobuf sources if available
-set(PROTOBUF_SOURCES "")
+# Add protobuf-c sources if available (for C profilers like DynamoRIO)
+set(PROTOBUF_C_SOURCES "")
+if(PROTOBUF_C_FOUND)
+    # Custom command to generate C protobuf code
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/memory_trace.pb-c.c
+               ${CMAKE_CURRENT_BINARY_DIR}/memory_trace.pb-c.h
+               ${CMAKE_CURRENT_BINARY_DIR}/timeseries_metrics.pb-c.c
+               ${CMAKE_CURRENT_BINARY_DIR}/timeseries_metrics.pb-c.h
+        COMMAND protoc-c --c_out=${CMAKE_CURRENT_BINARY_DIR}
+                --proto_path=${CMAKE_CURRENT_SOURCE_DIR}/proto
+                ${CMAKE_CURRENT_SOURCE_DIR}/proto/memory_trace.proto
+                ${CMAKE_CURRENT_SOURCE_DIR}/proto/timeseries_metrics.proto
+        DEPENDS proto/memory_trace.proto proto/timeseries_metrics.proto
+        COMMENT "Generating C protobuf code"
+    )
+
+    set(PROTOBUF_C_SOURCES
+        src/protobuf_writer.c
+        ${CMAKE_CURRENT_BINARY_DIR}/memory_trace.pb-c.c
+        ${CMAKE_CURRENT_BINARY_DIR}/timeseries_metrics.pb-c.c
+    )
+
+    message(STATUS "Protobuf-c found - including C protobuf writers")
+else()
+    message(WARNING "Protobuf-c not found - C protobuf support disabled")
+    message(WARNING "Install protobuf-c development libraries to enable:")
+    message(WARNING "  Ubuntu/Debian: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler")
+    message(WARNING "  CentOS/RHEL: sudo yum install protobuf-c-devel protobuf-c-compiler")
+
+    # Still build protobuf_writer.c with stubs
+    set(PROTOBUF_C_SOURCES src/protobuf_writer.c)
+endif()
+
+# Add Python protobuf sources if available (for tools)
+set(PROTOBUF_PYTHON_SOURCES "")
+set(PROTOBUF_PYTHON_FILES "")
 if(Protobuf_FOUND)
-    # Generate C++ files from proto
+    # Generate C++ files from proto (for C++ tools if needed)
     protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
         proto/memory_trace.proto
     )
-    
-    set(PROTOBUF_SOURCES 
+
+    set(PROTOBUF_PYTHON_SOURCES
         src/memory_trace.cpp
         ${PROTO_SRCS}
     )
-    
-    message(STATUS "Protobuf found - including memory trace support")
+
+    # Also generate Python protobuf files for Python tools
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/proto/memory_trace_pb2.py
+               ${CMAKE_CURRENT_SOURCE_DIR}/proto/timeseries_metrics_pb2.py
+        COMMAND protoc --python_out=${CMAKE_CURRENT_SOURCE_DIR}/proto
+                --proto_path=${CMAKE_CURRENT_SOURCE_DIR}/proto
+                ${CMAKE_CURRENT_SOURCE_DIR}/proto/memory_trace.proto
+                ${CMAKE_CURRENT_SOURCE_DIR}/proto/timeseries_metrics.proto
+        DEPENDS proto/memory_trace.proto proto/timeseries_metrics.proto
+        COMMENT "Generating Python protobuf code"
+    )
+
+    set(PROTOBUF_PYTHON_FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/proto/memory_trace_pb2.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/proto/timeseries_metrics_pb2.py
+    )
+
+    message(STATUS "Protobuf found - including Python protobuf support")
 else()
-    message(WARNING "Protobuf not found - memory trace support disabled")
+    message(WARNING "Protobuf not found - Python protobuf support disabled")
     message(WARNING "Install protobuf development libraries to enable:")
     message(WARNING "  Ubuntu/Debian: sudo apt-get install libprotobuf-dev protobuf-compiler")
     message(WARNING "  CentOS/RHEL: sudo yum install protobuf-devel protobuf-compiler")
@@ -37,8 +93,19 @@ endif()
 # Create static library for common utilities
 add_library(profiler_common STATIC
     ${CORE_SOURCES}
-    ${PROTOBUF_SOURCES}
+    ${PROTOBUF_C_SOURCES}
+    ${PROTOBUF_PYTHON_SOURCES}
+    ${PROTOBUF_PYTHON_FILES}  # Add Python files as dependencies to trigger generation
 )
+
+# Enable position-independent code (required for linking into shared libraries)
+set_target_properties(profiler_common PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# Ensure Python protobuf files are generated when building
+if(PROTOBUF_PYTHON_FILES)
+    add_custom_target(python_protobuf ALL DEPENDS ${PROTOBUF_PYTHON_FILES})
+    add_dependencies(profiler_common python_protobuf)
+endif()
 
 # Set include directories
 target_include_directories(profiler_common PUBLIC
@@ -47,6 +114,12 @@ target_include_directories(profiler_common PUBLIC
 )
 
 # Link libraries
+if(PROTOBUF_C_FOUND)
+    target_include_directories(profiler_common PUBLIC ${PROTOBUF_C_INCLUDE_DIRS})
+    target_link_libraries(profiler_common ${PROTOBUF_C_LIBRARIES})
+    target_compile_definitions(profiler_common PUBLIC HAVE_PROTOBUF_C=1)
+endif()
+
 if(Protobuf_FOUND)
     target_link_libraries(profiler_common ${Protobuf_LIBRARIES})
     target_compile_definitions(profiler_common PUBLIC HAVE_PROTOBUF=1)

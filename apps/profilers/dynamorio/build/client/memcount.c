@@ -43,6 +43,7 @@
 #include "utils.h"
 #include "ws_tsearch.h"
 #include "hll.h"
+#include "protobuf_writer.h"
 
 /* Configuration structure */
 typedef struct {
@@ -120,11 +121,10 @@ typedef struct {
     HLL       sample_hll;    /* HLL WSS for the current window */
     uint64    sample_ref_count;
     uint64    sample_idx;    /* window number (0,1,2,...) */
-    file_t    sample_log;    /* optional CSV per-thread; can omit if not needed */
 
-    /* Trace output */
-    file_t    trace_file;    /* Memory trace file per thread */
-    bool      enable_trace;  /* Flag to enable/disable trace output */
+    /* Per-window counters for protobuf output */
+    uint64    sample_read_count;   /* reads in current window */
+    uint64    sample_write_count;  /* writes in current window */
 
 } per_thread_t;
 
@@ -142,6 +142,14 @@ static uint64 global_num_reads;
 static uint64 global_num_writes;
 static uint64 global_working_set;
 static int tls_index;
+
+/* Protobuf writers (global, single file for all threads) */
+static pb_trace_writer_t *global_trace_writer = NULL;
+static pb_timeseries_writer_t *global_timeseries_writer = NULL;
+static void *trace_mutex = NULL;            /* mutex for trace writer */
+static void *timeseries_mutex = NULL;       /* mutex for timeseries writer */
+static uint32_t global_thread_count = 0;    /* track total threads */
+static void *thread_count_mutex = NULL;
 
 static void
 event_exit(void);
@@ -182,22 +190,20 @@ static uint64 get_timestamp(void) {
 
 /* Direct trace function - called immediately for each memory access */
 static void direct_trace_write(void *addr, bool write, size_t size, app_pc pc) {
-    per_thread_t *data = drmgr_get_tls_field(dr_get_current_drcontext(), tls_index);
-    
-    if (data->enable_trace && data->trace_file != INVALID_FILE) {
-        char trace_line[64];
-        int len = dr_snprintf(trace_line, sizeof(trace_line), "%llu,%p,%d,%zu\n",
-                            get_timestamp(), addr, write ? 1 : 0, size);
-        if (len > 0) {
-            ssize_t written = dr_write_file(data->trace_file, trace_line, len);
-            if (written != len) {
-                /* Write failed - disable tracing to prevent further crashes */
-                dr_fprintf(STDERR, "Warning: Trace write failed, disabling trace output\n");
-                dr_close_file(data->trace_file);
-                data->trace_file = INVALID_FILE;
-                data->enable_trace = false;
-            }
-        }
+    if (global_trace_writer && config.enable_trace) {
+        void *drcontext = dr_get_current_drcontext();
+        uint32_t thread_id = dr_get_thread_id(drcontext);
+        uint64_t timestamp = get_timestamp();
+
+        /* Thread-safe write to global protobuf file */
+        dr_mutex_lock(trace_mutex);
+        pb_trace_write_event(global_trace_writer,
+                            timestamp,
+                            thread_id,
+                            (uint64_t)addr,
+                            write,
+                            (uint32_t)size);
+        dr_mutex_unlock(trace_mutex);
     }
 }
 
@@ -301,6 +307,9 @@ static void init_config_derived_values(void) {
 static void finalize_sample_window(per_thread_t *t) {
     if (!t) return;
 
+    void *drcontext = dr_get_current_drcontext();
+    uint32_t thread_id = dr_get_thread_id(drcontext);
+
     /* exact WSS (only if enabled) */
     ws_stats_t s = {0};
     if (config.wss_exact_tracking && t->sample_ws) {
@@ -313,13 +322,21 @@ static void finalize_sample_window(per_thread_t *t) {
         wss_est = hll_count(&t->sample_hll);
     }
 
-    /* optional: log one CSV line per window */
-    if (t->sample_log != INVALID_FILE) {
-        dr_fprintf(t->sample_log, "%llu,%llu,%.0f,%u\n",
-                   (unsigned long long)t->sample_idx,
-                   (unsigned long long)s.distinct,
-                   wss_est,
-                   t->sample_ref_count);
+    /* Write to protobuf timeseries file (thread-safe) */
+    if (global_timeseries_writer && config.wss_stat_tracking) {
+        dr_mutex_lock(timeseries_mutex);
+        pb_timeseries_write_sample(
+            global_timeseries_writer,
+            t->sample_idx,              // window_number
+            thread_id,                  // thread_id
+            t->sample_read_count,       // read_count
+            t->sample_write_count,      // write_count
+            t->sample_ref_count,        // total_refs
+            s.distinct,                 // wss_exact
+            wss_est,                    // wss_approx
+            get_timestamp()             // timestamp
+        );
+        dr_mutex_unlock(timeseries_mutex);
     }
 
     /* reset for next window */
@@ -330,6 +347,8 @@ static void finalize_sample_window(per_thread_t *t) {
         hll_reset(&t->sample_hll);    /* zero registers, keep alloc */
     }
     t->sample_ref_count = 0;
+    t->sample_read_count = 0;
+    t->sample_write_count = 0;
     t->sample_idx++;
 }
 
@@ -382,6 +401,51 @@ dr_client_main(client_id_t id, int argc, const char *argv[])
     hll_mutex = dr_mutex_create();
     DR_ASSERT(hll_init(&global_hll, config.hll_bits) == 0);
 
+    /* Initialize protobuf writers (single file for all threads) */
+    if (config.enable_trace) {
+        char trace_filename[256];
+        dr_snprintf(trace_filename, sizeof(trace_filename), "memtrace_%d.pb", dr_get_process_id());
+        global_trace_writer = pb_trace_writer_create(trace_filename);
+        trace_mutex = dr_mutex_create();
+        if (global_trace_writer) {
+            dr_fprintf(STDERR, "Protobuf trace output enabled: %s\n", trace_filename);
+        } else {
+            dr_fprintf(STDERR, "Warning: Failed to create protobuf trace writer\n");
+        }
+    }
+
+    if (config.wss_stat_tracking) {
+        char timeseries_filename[256];
+        const char *command;
+
+        dr_snprintf(timeseries_filename, sizeof(timeseries_filename),
+                   "timeseries_%d.pb", dr_get_process_id());
+
+        /* Get command line (returns const char*) */
+        command = dr_get_application_name();
+        if (!command) {
+            command = "unknown";
+        }
+
+        global_timeseries_writer = pb_timeseries_writer_create(
+            timeseries_filename,
+            "dynamorio",
+            dr_get_process_id(),
+            command,
+            config.sample_window_refs,
+            config.cache_line_size
+        );
+
+        timeseries_mutex = dr_mutex_create();
+        thread_count_mutex = dr_mutex_create();
+
+        if (global_timeseries_writer) {
+            dr_fprintf(STDERR, "Protobuf time-series output enabled: %s\n", timeseries_filename);
+        } else {
+            dr_fprintf(STDERR, "Warning: Failed to create protobuf time-series writer\n");
+        }
+    }
+
     if (!drmgr_register_thread_init_event(event_thread_init) ||
         !drmgr_register_thread_exit_event(event_thread_exit) ||
         !drmgr_register_bb_app2app_event(event_bb_app2app, &priority) ||
@@ -408,7 +472,7 @@ dr_client_main(client_id_t id, int argc, const char *argv[])
     }
 }
 
-static void 
+static void
 event_exit()
 {
     char msg[512];
@@ -432,6 +496,36 @@ event_exit()
 		    "  estimated unique lines: %llu\n",
 		    (unsigned long long) hll_est_lines);
     NULL_TERMINATE_BUFFER(msg); DISPLAY_STRING(msg);
+
+    /* Close protobuf writers */
+    if (global_trace_writer) {
+        pb_trace_writer_close(global_trace_writer);
+        dr_fprintf(STDERR, "Protobuf trace file closed\n");
+        global_trace_writer = NULL;
+    }
+
+    if (global_timeseries_writer) {
+        /* Set thread count in metadata before closing */
+        pb_timeseries_set_num_threads(global_timeseries_writer, global_thread_count);
+        pb_timeseries_writer_close(global_timeseries_writer);
+        dr_fprintf(STDERR, "Protobuf time-series file closed\n");
+        global_timeseries_writer = NULL;
+    }
+
+    /* Destroy protobuf mutexes */
+    if (trace_mutex) {
+        dr_mutex_destroy(trace_mutex);
+        trace_mutex = NULL;
+    }
+    if (timeseries_mutex) {
+        dr_mutex_destroy(timeseries_mutex);
+        timeseries_mutex = NULL;
+    }
+    if (thread_count_mutex) {
+        dr_mutex_destroy(thread_count_mutex);
+        thread_count_mutex = NULL;
+    }
+
     code_cache_exit();
 
     if (!drmgr_unregister_tls_field(tls_index) ||
@@ -483,43 +577,28 @@ event_thread_init(void *drcontext)
         } else {
             data->sample_ws = NULL;
         }
-        
+
         if (config.wss_hll_tracking) {
             DR_ASSERT(hll_init(&data->sample_hll, config.sample_hll_bits) == 0);
         }
-        
+
         data->sample_ref_count = 0;
+        data->sample_read_count = 0;
+        data->sample_write_count = 0;
         data->sample_idx = 0;
     } else {
         data->sample_ws = NULL;
         data->sample_ref_count = 0;
+        data->sample_read_count = 0;
+        data->sample_write_count = 0;
         data->sample_idx = 0;
     }
 
-    /* optional: CSV per-thread */
-    if (config.wss_stat_tracking) {
-        char fname[384];
-        dr_snprintf(fname, sizeof(fname), "%s%u.csv", config.csv_file_prefix, dr_get_thread_id(drcontext));
-        data->sample_log = dr_open_file(fname, DR_FILE_WRITE_OVERWRITE);
-        if (data->sample_log != INVALID_FILE) {
-            dr_fprintf(data->sample_log, "window,distinct_exact,hll_est,total_refs\n");
-        }
-    } else {
-        data->sample_log = INVALID_FILE;
-    }
-
-    /* Initialize trace file */
-    data->enable_trace = config.enable_trace;
-    if (data->enable_trace) {
-        char trace_fname[384];
-        dr_snprintf(trace_fname, sizeof(trace_fname), "%s%u.csv", config.trace_file_prefix, dr_get_thread_id(drcontext));
-        data->trace_file = dr_open_file(trace_fname, DR_FILE_WRITE_OVERWRITE);
-        if (data->trace_file != INVALID_FILE) {
-            char header[] = "timestamp,addr,op,size\n";
-            dr_write_file(data->trace_file, header, strlen(header));
-        }
-    } else {
-        data->trace_file = INVALID_FILE;
+    /* Track total thread count for protobuf metadata */
+    if (config.wss_stat_tracking && global_timeseries_writer) {
+        dr_mutex_lock(thread_count_mutex);
+        global_thread_count++;
+        dr_mutex_unlock(thread_count_mutex);
     }
 
     dr_log(drcontext, DR_LOG_ALL, 1, "memcount: set up for thread " TIDFMT "\n",
@@ -537,14 +616,6 @@ event_thread_exit(void *drcontext)
     /* flush last partial window (if any) */
     if (config.wss_stat_tracking && data->sample_ref_count > 0)
     	finalize_sample_window(data);
-
-    /* close CSV (if opened) */
-    if (data->sample_log != INVALID_FILE)
-    	dr_close_file(data->sample_log);
-
-    /* close trace file (if opened) */
-    if (data->trace_file != INVALID_FILE)
-    	dr_close_file(data->trace_file);
 
     /* destroy windowed structures */
     if (config.wss_stat_tracking) {
@@ -712,14 +783,22 @@ memtrace(void *drcontext)
 	}
 
         /* Trace output is now handled directly via instrument_mem_direct() */
-	
+
         if(mem_ref->write) {
             num_writes++;
+            /* Track per-window write count for protobuf */
+            if (config.wss_stat_tracking) {
+                data->sample_write_count++;
+            }
         } else {
             num_reads++;
+            /* Track per-window read count for protobuf */
+            if (config.wss_stat_tracking) {
+                data->sample_read_count++;
+            }
         }
         ++mem_ref;
-	
+
 	/* Sample window tracking only if WSS stats enabled */
 	if (config.wss_stat_tracking) {
 		data->sample_ref_count++;

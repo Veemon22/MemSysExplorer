@@ -5,6 +5,7 @@ ENV_DIR := $(APPS_HOME)/tools
 JSON_FILE := $(APPS_HOME)/built_profilers.json
 
 # Define profiler directories
+COMMON_DIR := $(APPS_HOME)/profilers/common
 DYNAMORIO_DIR := $(APPS_HOME)/profilers/dynamorio
 SNIPER_DIR := $(APPS_HOME)/profilers/sniper
 NCU_DIR := $(APPS_HOME)/profilers/ncu
@@ -12,10 +13,10 @@ NVBIT_DIR := $(APPS_HOME)/profilers/nvbit
 PERF_DIR := $(APPS_HOME)/profilers/perf
 DOCS_DIR := $(APPS_HOME)/docs
 
-.PHONY: all dynamorio sniper nvbit perf ncu docs clean clean_docs clean_builds
+.PHONY: all common dynamorio sniper nvbit perf ncu docs clean clean_common clean_dynamorio clean_sniper clean_nvbit clean_perf clean_docs clean_pycache clean_builds
 
 # Default target: build everything
-all: dynamorio sniper nvbit perf ncu docs
+all: common dynamorio sniper nvbit perf ncu docs
 	@echo "All profilers and documentation built successfully."
 
 # Initialize JSON file if it doesn't exist
@@ -28,7 +29,14 @@ init_json:
 update_json:
 	@jq --arg key "$(PROFILER)" '.[$$key] = true' "$(JSON_FILE)" > "$(JSON_FILE).tmp" && mv "$(JSON_FILE).tmp" "$(JSON_FILE)"
 
-dynamorio: init_json
+# Build common library
+common:
+	@echo "        Building Common Library          "
+	@mkdir -p $(COMMON_DIR)/build
+	cd $(COMMON_DIR)/build && cmake .. && make
+	@echo "Common library built successfully."
+
+dynamorio: init_json common
 	@echo "            Building DynamoRIO             "
 	cd $(DYNAMORIO_DIR) && make PATCH_DIR=$(PATCH_DIR)
 	@echo "DynamoRIO build completed."
@@ -40,13 +48,13 @@ ncu: init_json
 	@echo "Nsight Profilers check completed."
 	@make update_json PROFILER=ncu
 
-sniper: init_json
+sniper: init_json common
 	@echo "              Building Sniper              "
 	cd $(SNIPER_DIR) && make PATCH_DIR=$(PATCH_DIR)
 	@echo "Sniper build completed."
 	@make update_json PROFILER=sniper
 
-nvbit: init_json
+nvbit: init_json common
 	@echo "              Building NVBit               "
 	cd $(NVBIT_DIR) && make PATCH_DIR=$(PATCH_DIR)
 	@echo "NVBit build completed."
@@ -63,11 +71,16 @@ docs:
 	@echo "Documentation built at $(DOCS_DIR)/_build/html"
 
 # Clean all profilers and docs
-clean: clean_dynamorio clean_sniper clean_nvbit clean_perf clean_docs clean_pycache clean_builds
+clean: clean_common clean_dynamorio clean_sniper clean_nvbit clean_perf clean_docs clean_pycache clean_builds
 	@rm -f $(JSON_FILE)
 	@echo "         Cleaning Completed                "
 
 # Clean individual profilers
+clean_common:
+	@echo "Cleaning Common Library..."
+	@rm -rf $(COMMON_DIR)/build
+	@echo "Common library cleaned."
+
 clean_dynamorio:
 	@echo "Cleaning DynamoRIO..."
 	cd $(DYNAMORIO_DIR) && make clean
