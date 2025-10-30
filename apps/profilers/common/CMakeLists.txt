@@ -11,6 +11,20 @@ if(PKG_CONFIG_FOUND)
     pkg_check_modules(PROTOBUF_C QUIET libprotobuf-c)
 endif()
 
+# Fallback: If pkg-config didn't find protobuf-c, try manual search
+if(NOT PROTOBUF_C_FOUND)
+    # Search in CMAKE_PREFIX_PATH for protobuf-c
+    foreach(prefix ${CMAKE_PREFIX_PATH})
+        if(EXISTS "${prefix}/include/protobuf-c/protobuf-c.h")
+            set(PROTOBUF_C_FOUND TRUE)
+            set(PROTOBUF_C_INCLUDE_DIRS "${prefix}/include")
+            set(PROTOBUF_C_LIBRARIES "${prefix}/lib/libprotobuf-c.a")
+            message(STATUS "Found protobuf-c manually at ${prefix}")
+            break()
+        endif()
+    endforeach()
+endif()
+
 # Always build the core utilities
 set(CORE_SOURCES
     src/hll.c

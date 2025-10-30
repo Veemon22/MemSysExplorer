@@ -94,7 +94,7 @@ show_options() {
 if [[ $# -eq 0 ]]; then
     echo "No environment specified. Please choose one:"
     show_options
-    exit 1
+    return 1
 fi
 
 # Select the environment based on user input
@@ -104,7 +104,7 @@ case "$1" in
 
         if [[ ! -d "$GCC_PATH" ]]; then
             echo "Error: GCC $GCC_VERSION not found at $GCC_PATH"
-            exit 1
+            return 1
         fi
 
         export PATH="$GCC_PATH/bin:$PATH"
@@ -217,7 +217,7 @@ case "$1" in
     *)
         echo "Invalid selection. Please choose one of the following:"
         show_options
-        exit 1
+        return 1
         ;;
 esac
 
