@@ -9,7 +9,7 @@ Sniper is particularly useful for modeling the impact of emerging memory technol
 
    **MemSysExplorer GitHub Repository**
 
-   Refer to the codebase for the latest update:: https://github.com/lpentecost/MemSys-Playground/tree/gpu-app/apps/sniper
+   Refer to the codebase for the latest update:: https://github.com/duca181/MemSysExplorer/tree/apps_dev/apps/profilers/sniper
 
    To learn more about license terms and third-party attribution, refer to the :doc:`../licensing` page.
 

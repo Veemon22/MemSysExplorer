@@ -17,6 +17,12 @@ wss_stat_tracking=true
 wss_exact_tracking=true
 wss_hll_tracking=true
 
+# Instruction Threshold Control
+# Set enable_instruction_threshold=true to terminate after a specific number of instructions
+# Useful for testing or limiting profiling to a specific instruction count
+enable_instruction_threshold=true
+instruction_threshold=100000000
+
 # Protobuf Output Files (base names, process ID will be appended)
 pb_trace_output=memtrace
 pb_timeseries_output=timeseries

@@ -1,11 +1,11 @@
 
 # Benchmark Hooking and Profiling Integration (Development Workspace)
 
-This repository serves as an active development environment for hooking standardized benchmark suites into the MemSys-Playground profiling and simulation framework. The goal is to create a clean, unified wrapper interface that enables seamless integration of various profilers and simulators (e.g., Sniper, NVBit, Perf, DynamoRIO) with benchmark workloads.
+This repository serves as an active development environment for hooking standardized benchmark suites into the MemSysExplorer profiling and simulation framework. The goal is to create a clean, unified wrapper interface that enables seamless integration of various profilers and simulators (e.g., Sniper, NVBit, Perf, DynamoRIO) with benchmark workloads.
 
 ## Purpose
 
-This directory is under **active development** and serves as a testing ground for integrating benchmark execution into the profiling tools supported by MemSys-Playground. The focus is on enabling dynamic command construction, dataset management, and profiler orchestration through a Python interface (`main.py`).
+This directory is under **active development** and serves as a testing ground for integrating benchmark execution into the profiling tools supported by MemSysExplorer. The focus is on enabling dynamic command construction, dataset management, and profiler orchestration through a Python interface (`main.py`).
 
 ## Supported Benchmarks (Planned)
 
@@ -32,7 +32,7 @@ The SPEC command lines were extracted using `specinvoke -n` and follow conventio
 .
 ├── commands/               # Contains .cmd files for each benchmark case
 ├── run_spec2017.sh         # Main automation script to prepare and simulate workloads
-├── main.py                 # Python profiler wrapper (in MemSys-Playground)
+├── main.py                 # Python profiler wrapper (in MemSysExplorer)
 ├── spec_runs/              # Output directories per benchmark execution
 ├── config/                 # Configuration files for simulator setup
 ```
@@ -41,7 +41,7 @@ The SPEC command lines were extracted using `specinvoke -n` and follow conventio
 
 * Auto-detect and wrap benchmark commands
 * Copies input/output data files and generates working directories
-* Integrates with MemSys-Playground `main.py` interface
+* Integrates with MemSysExplorer `main.py` interface
 * Supports batch profiling of SPEC workloads across Sniper
 
 ## Status

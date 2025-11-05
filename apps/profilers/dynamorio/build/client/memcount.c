@@ -53,15 +53,19 @@ typedef struct {
     uint sample_hll_bits;
     uint sample_window_refs;
     uint max_mem_refs;
-    
+
     /* Output control */
     bool enable_trace;
     bool wss_stat_tracking;
-    
+
     /* WSS tracking method control */
     bool wss_exact_tracking;    /* Enable exact WSS tracking (memory intensive) */
     bool wss_hll_tracking;      /* Enable HLL-based WSS tracking (memory efficient) */
-    
+
+    /* Instruction threshold control */
+    bool enable_instruction_threshold;  /* Enable instruction threshold termination */
+    uint64 instruction_threshold;       /* Number of instructions before termination */
+
     /* Protobuf output file paths */
     char pb_trace_output[256];
     char pb_timeseries_output[256];
@@ -78,6 +82,8 @@ static memcount_config_t config = {
     .wss_stat_tracking = true,
     .wss_exact_tracking = true,
     .wss_hll_tracking = true,
+    .enable_instruction_threshold = false,
+    .instruction_threshold = 100000000,  /* Default: 100M instructions */
     .pb_trace_output = "memtrace",
     .pb_timeseries_output = "timeseries"
 };
@@ -143,6 +149,11 @@ static uint64 global_num_writes;
 static uint64 global_working_set;
 static int tls_index;
 
+/* Instruction threshold tracking */
+static uint64 global_instruction_count = 0;
+static void *instr_count_mutex = NULL;
+static volatile bool threshold_reached = false;
+
 /* Protobuf writers (global, single file for all threads) */
 static pb_trace_writer_t *global_trace_writer = NULL;
 static pb_timeseries_writer_t *global_timeseries_writer = NULL;
@@ -157,6 +168,8 @@ static void
 event_thread_init(void *drcontext);
 static void
 event_thread_exit(void *drcontext);
+static void
+check_instruction_threshold(uint64 num_instrs);
 static dr_emit_flags_t
 event_bb_app2app(void *drcontext, void *tag, instrlist_t *bb, bool for_trace,
                  bool translating);
@@ -186,6 +199,29 @@ instrument_mem_direct(void *drcontext, instrlist_t *ilist, instr_t *where, app_p
 /* Get high-resolution timestamp */
 static uint64 get_timestamp(void) {
     return dr_get_microseconds();
+}
+
+/* Check instruction threshold and terminate if reached */
+static void check_instruction_threshold(uint64 num_instrs) {
+    if (!config.enable_instruction_threshold || threshold_reached)
+        return;
+
+    dr_mutex_lock(instr_count_mutex);
+    global_instruction_count += num_instrs;
+
+    if (global_instruction_count >= config.instruction_threshold) {
+        threshold_reached = true;
+        dr_mutex_unlock(instr_count_mutex);
+
+        dr_fprintf(STDERR, "\n=== Instruction threshold reached: %llu instructions ===\n",
+                   global_instruction_count);
+        dr_fprintf(STDERR, "Terminating instrumentation and printing final stats...\n\n");
+
+        /* Trigger exit which will print final stats */
+        dr_exit_process(0);
+    } else {
+        dr_mutex_unlock(instr_count_mutex);
+    }
 }
 
 /* Direct trace function - called immediately for each memory access */
@@ -286,6 +322,10 @@ static bool parse_config_file(const char *config_path) {
             config.wss_exact_tracking = (strcmp(value, "true") == 0 || strcmp(value, "1") == 0);
         } else if (strcmp(key, "wss_hll_tracking") == 0) {
             config.wss_hll_tracking = (strcmp(value, "true") == 0 || strcmp(value, "1") == 0);
+        } else if (strcmp(key, "enable_instruction_threshold") == 0) {
+            config.enable_instruction_threshold = (strcmp(value, "true") == 0 || strcmp(value, "1") == 0);
+        } else if (strcmp(key, "instruction_threshold") == 0) {
+            config.instruction_threshold = (uint64)strtoull(value, NULL, 10);
         } else if (strcmp(key, "pb_trace_output") == 0) {
             strncpy(config.pb_trace_output, value, sizeof(config.pb_trace_output) - 1);
         } else if (strcmp(key, "pb_timeseries_output") == 0) {
@@ -400,6 +440,9 @@ dr_client_main(client_id_t id, int argc, const char *argv[])
 
     hll_mutex = dr_mutex_create();
     DR_ASSERT(hll_init(&global_hll, config.hll_bits) == 0);
+
+    /* Initialize instruction count mutex */
+    instr_count_mutex = dr_mutex_create();
 
     /* Initialize protobuf writers (single file for all threads) */
     if (config.enable_trace) {
@@ -537,6 +580,13 @@ event_exit()
     DR_ASSERT(false);
 
     dr_mutex_destroy(mutex);
+
+    /* Destroy instruction count mutex */
+    if (instr_count_mutex) {
+        dr_mutex_destroy(instr_count_mutex);
+        instr_count_mutex = NULL;
+    }
+
     drutil_exit();
     drmgr_exit();
     drx_exit();
@@ -700,6 +750,23 @@ event_bb_insert(void *drcontext, void *tag, instrlist_t *bb, instr_t *where,
     if (instr_fetch != NULL)
         data->last_pc = instr_get_app_pc(instr_fetch);
     app_pc last_pc = data->last_pc;
+
+    /* Count instructions for threshold checking (do this once at the start of BB) */
+    if (config.enable_instruction_threshold && !threshold_reached &&
+        drmgr_is_first_instr(drcontext, where)) {
+        /* Count number of app instructions in this basic block */
+        uint64 bb_instr_count = 0;
+        for (instr_t *instr = instrlist_first_app(bb); instr != NULL;
+             instr = instr_get_next_app(instr)) {
+            bb_instr_count++;
+        }
+        /* Insert clean call to check threshold at start of BB */
+        dr_insert_clean_call(drcontext, bb, where,
+                            (void *)check_instruction_threshold,
+                            false, 1,
+                            OPND_CREATE_INT64(bb_instr_count));
+    }
+
     if (drmgr_is_last_instr(drcontext, where))
         dr_thread_free(drcontext, data, sizeof(*data));
 
