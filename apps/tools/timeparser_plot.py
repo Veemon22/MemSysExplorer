@@ -73,6 +73,30 @@ def plot_timeseries(pb_file, output_file=None, filter_thread=None):
     wss_exact = [s['wss_exact'] for s in samples]
     wss_approx = [s['wss_approx'] for s in samples]
 
+    # Extract read size histograms
+    read_sizes = {
+        '1': [s['read_size_histogram']['1'] for s in samples],
+        '2': [s['read_size_histogram']['2'] for s in samples],
+        '4': [s['read_size_histogram']['4'] for s in samples],
+        '8': [s['read_size_histogram']['8'] for s in samples],
+        '16': [s['read_size_histogram']['16'] for s in samples],
+        '32': [s['read_size_histogram']['32'] for s in samples],
+        '64': [s['read_size_histogram']['64'] for s in samples],
+        'other': [s['read_size_histogram']['other'] for s in samples]
+    }
+
+    # Extract write size histograms
+    write_sizes = {
+        '1': [s['write_size_histogram']['1'] for s in samples],
+        '2': [s['write_size_histogram']['2'] for s in samples],
+        '4': [s['write_size_histogram']['4'] for s in samples],
+        '8': [s['write_size_histogram']['8'] for s in samples],
+        '16': [s['write_size_histogram']['16'] for s in samples],
+        '32': [s['write_size_histogram']['32'] for s in samples],
+        '64': [s['write_size_histogram']['64'] for s in samples],
+        'other': [s['write_size_histogram']['other'] for s in samples]
+    }
+
     # Create subplots (5 rows, 1 column)
     fig, axes = plt.subplots(5, 1, figsize=(12, 12))
 
@@ -80,20 +104,50 @@ def plot_timeseries(pb_file, output_file=None, filter_thread=None):
     sample_window_refs = metadata['sample_window_refs']
     legend_label = f'Sampling Window: {sample_window_refs:,} refs'
 
-    # Plot 1: Read Count
-    axes[0].plot(window_numbers, read_counts, marker='o', markersize=4, linewidth=2,
-                 label=legend_label, color='tab:blue', alpha=0.7)
-    axes[0].set_ylabel('Read Count', fontsize=11, fontweight='bold')
-    axes[0].set_title('Time Series Data', fontsize=14, fontweight='bold', pad=15)
-    axes[0].grid(True, alpha=0.3, linestyle='--')
-    axes[0].legend(loc='best', framealpha=0.9, fontsize=9)
+    # Plot 1: Read Count (with size breakdown)
+    # Define colors for different sizes
+    size_colors = {
+        '1': '#1f77b4',   # blue
+        '2': '#ff7f0e',   # orange
+        '4': '#2ca02c',   # green
+        '8': '#d62728',   # red
+        '16': '#9467bd',  # purple
+        '32': '#8c564b',  # brown
+        '64': '#e377c2',  # pink
+        'other': '#7f7f7f'  # gray
+    }
 
-    # Plot 2: Write Count
-    axes[1].plot(window_numbers, write_counts, marker='s', markersize=4, linewidth=2,
-                 label=legend_label, color='tab:orange', alpha=0.7)
+    # Plot total read count (thicker line)
+    axes[0].plot(window_numbers, read_counts, linewidth=2.5,
+                 label='Total Reads', color='black', alpha=0.8, zorder=10)
+
+    # Plot each read size (only if non-zero)
+    for size_label, counts in read_sizes.items():
+        if max(counts) > 0:  # Only plot if there are non-zero values
+            axes[0].plot(window_numbers, counts, linewidth=1.5, marker='.',
+                        markersize=3, label=f'{size_label}B reads',
+                        color=size_colors[size_label], alpha=0.7)
+
+    axes[0].set_ylabel('Read Count', fontsize=11, fontweight='bold')
+    axes[0].set_title(f'Time Series Data - {legend_label}', fontsize=14, fontweight='bold', pad=15)
+    axes[0].grid(True, alpha=0.3, linestyle='--')
+    axes[0].legend(loc='best', framealpha=0.9, fontsize=8, ncol=2)
+
+    # Plot 2: Write Count (with size breakdown)
+    # Plot total write count (thicker line)
+    axes[1].plot(window_numbers, write_counts, linewidth=2.5,
+                 label='Total Writes', color='black', alpha=0.8, zorder=10)
+
+    # Plot each write size (only if non-zero)
+    for size_label, counts in write_sizes.items():
+        if max(counts) > 0:  # Only plot if there are non-zero values
+            axes[1].plot(window_numbers, counts, linewidth=1.5, marker='.',
+                        markersize=3, label=f'{size_label}B writes',
+                        color=size_colors[size_label], alpha=0.7)
+
     axes[1].set_ylabel('Write Count', fontsize=11, fontweight='bold')
     axes[1].grid(True, alpha=0.3, linestyle='--')
-    axes[1].legend(loc='best', framealpha=0.9, fontsize=9)
+    axes[1].legend(loc='best', framealpha=0.9, fontsize=8, ncol=2)
 
     # Plot 3: WSS Exact
     axes[2].plot(window_numbers, wss_exact, marker='^', markersize=4, linewidth=2,

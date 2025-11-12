@@ -43,4 +43,24 @@ message SampleWindow {
   double wss_approx = 7;         // Approximate WSS (from HLL)
 
   uint64 timestamp = 8;          // Sample timestamp (microseconds)
+
+  // Read size breakdown (bytes)
+  uint64 read_size_1 = 9;        // 1-byte reads
+  uint64 read_size_2 = 10;       // 2-byte reads
+  uint64 read_size_4 = 11;       // 4-byte reads
+  uint64 read_size_8 = 12;       // 8-byte reads
+  uint64 read_size_16 = 13;      // 16-byte reads
+  uint64 read_size_32 = 14;      // 32-byte reads
+  uint64 read_size_64 = 15;      // 64-byte reads
+  uint64 read_size_other = 16;   // Other size reads
+
+  // Write size breakdown (bytes)
+  uint64 write_size_1 = 17;      // 1-byte writes
+  uint64 write_size_2 = 18;      // 2-byte writes
+  uint64 write_size_4 = 19;      // 4-byte writes
+  uint64 write_size_8 = 20;      // 8-byte writes
+  uint64 write_size_16 = 21;     // 16-byte writes
+  uint64 write_size_32 = 22;     // 32-byte writes
+  uint64 write_size_64 = 23;     // 64-byte writes
+  uint64 write_size_other = 24;  // Other size writes
 }

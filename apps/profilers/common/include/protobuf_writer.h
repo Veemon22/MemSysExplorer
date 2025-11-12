@@ -89,6 +89,8 @@ pb_timeseries_writer_t* pb_timeseries_writer_create(
  * @param wss_exact Exact working set size (from ws_tsearch)
  * @param wss_approx Approximate WSS (from HLL)
  * @param timestamp Sample timestamp in microseconds
+ * @param read_size_1 through read_size_other - Read size histograms
+ * @param write_size_1 through write_size_other - Write size histograms
  */
 void pb_timeseries_write_sample(pb_timeseries_writer_t *writer,
                                 uint64_t window_number,
@@ -98,7 +100,11 @@ void pb_timeseries_write_sample(pb_timeseries_writer_t *writer,
                                 uint64_t total_refs,
                                 uint64_t wss_exact,
                                 double wss_approx,
-                                uint64_t timestamp);
+                                uint64_t timestamp,
+                                uint64_t read_size_1, uint64_t read_size_2, uint64_t read_size_4, uint64_t read_size_8,
+                                uint64_t read_size_16, uint64_t read_size_32, uint64_t read_size_64, uint64_t read_size_other,
+                                uint64_t write_size_1, uint64_t write_size_2, uint64_t write_size_4, uint64_t write_size_8,
+                                uint64_t write_size_16, uint64_t write_size_32, uint64_t write_size_64, uint64_t write_size_other);
 
 /**
  * Manually flush buffered samples to disk

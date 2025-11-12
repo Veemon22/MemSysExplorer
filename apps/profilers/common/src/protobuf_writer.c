@@ -137,7 +137,11 @@ void pb_timeseries_write_sample(pb_timeseries_writer_t *writer,
                                 uint64_t total_refs,
                                 uint64_t wss_exact,
                                 double wss_approx,
-                                uint64_t timestamp) {
+                                uint64_t timestamp,
+                                uint64_t read_size_1, uint64_t read_size_2, uint64_t read_size_4, uint64_t read_size_8,
+                                uint64_t read_size_16, uint64_t read_size_32, uint64_t read_size_64, uint64_t read_size_other,
+                                uint64_t write_size_1, uint64_t write_size_2, uint64_t write_size_4, uint64_t write_size_8,
+                                uint64_t write_size_16, uint64_t write_size_32, uint64_t write_size_64, uint64_t write_size_other) {
     if (!writer) return;
 
     /* Create a single sample */
@@ -150,6 +154,26 @@ void pb_timeseries_write_sample(pb_timeseries_writer_t *writer,
     sample.wss_exact = wss_exact;
     sample.wss_approx = wss_approx;
     sample.timestamp = timestamp;
+
+    /* Set read size histograms */
+    sample.read_size_1 = read_size_1;
+    sample.read_size_2 = read_size_2;
+    sample.read_size_4 = read_size_4;
+    sample.read_size_8 = read_size_8;
+    sample.read_size_16 = read_size_16;
+    sample.read_size_32 = read_size_32;
+    sample.read_size_64 = read_size_64;
+    sample.read_size_other = read_size_other;
+
+    /* Set write size histograms */
+    sample.write_size_1 = write_size_1;
+    sample.write_size_2 = write_size_2;
+    sample.write_size_4 = write_size_4;
+    sample.write_size_8 = write_size_8;
+    sample.write_size_16 = write_size_16;
+    sample.write_size_32 = write_size_32;
+    sample.write_size_64 = write_size_64;
+    sample.write_size_other = write_size_other;
 
     /* Create a wrapper TimeSeriesData with metadata and this single sample */
     Memsys__Timeseries__TimeSeriesData data = MEMSYS__TIMESERIES__TIME_SERIES_DATA__INIT;
@@ -232,11 +256,15 @@ pb_timeseries_writer_t* pb_timeseries_writer_create(
 }
 
 void pb_timeseries_write_sample(pb_timeseries_writer_t *writer,
-                                uint64_t window_number, uint32_t thread_id,
+                                uint64_t window_number, uint64_t thread_id,
                                 uint64_t read_count, uint64_t write_count,
                                 uint64_t total_refs,
                                 uint64_t wss_exact, double wss_approx,
-                                uint64_t timestamp) {
+                                uint64_t timestamp,
+                                uint64_t read_size_1, uint64_t read_size_2, uint64_t read_size_4, uint64_t read_size_8,
+                                uint64_t read_size_16, uint64_t read_size_32, uint64_t read_size_64, uint64_t read_size_other,
+                                uint64_t write_size_1, uint64_t write_size_2, uint64_t write_size_4, uint64_t write_size_8,
+                                uint64_t write_size_16, uint64_t write_size_32, uint64_t write_size_64, uint64_t write_size_other) {
     /* No-op */
 }
 

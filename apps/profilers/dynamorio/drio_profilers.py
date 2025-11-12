@@ -166,7 +166,37 @@ class DrioProfilers(FrontendInterface):
             reads = re.search(r"number of reads: (\d+)", toparse).group(1)
             writes = re.search(r"number of writes: (\d+)", toparse).group(1)
             working_set_size = re.search(r"working set size: (\d+)", toparse).group(1)
-            
+
+            # Extract execution time (prefer microseconds for precision)
+            execution_time_us_match = re.search(r"execution time \(us\): (\d+)", toparse)
+            execution_time_ms_match = re.search(r"execution time \(ms\): ([\d.]+)", toparse)
+            execution_time_s_match = re.search(r"execution time \(s\): ([\d.]+)", toparse)
+
+            # Store execution time in microseconds (raw precision from DynamoRIO)
+            execution_time_us = int(execution_time_us_match.group(1)) if execution_time_us_match else None
+            execution_time_ms = float(execution_time_ms_match.group(1)) if execution_time_ms_match else None
+            execution_time_s = float(execution_time_s_match.group(1)) if execution_time_s_match else None
+
+            # Extract size-specific read counts
+            read_size_1 = re.search(r"1-byte reads: (\d+)", toparse)
+            read_size_2 = re.search(r"2-byte reads: (\d+)", toparse)
+            read_size_4 = re.search(r"4-byte reads: (\d+)", toparse)
+            read_size_8 = re.search(r"8-byte reads: (\d+)", toparse)
+            read_size_16 = re.search(r"16-byte reads: (\d+)", toparse)
+            read_size_32 = re.search(r"32-byte reads: (\d+)", toparse)
+            read_size_64 = re.search(r"64-byte reads: (\d+)", toparse)
+            read_size_other = re.search(r"other-size reads: (\d+)", toparse)
+
+            # Extract size-specific write counts
+            write_size_1 = re.search(r"1-byte writes: (\d+)", toparse)
+            write_size_2 = re.search(r"2-byte writes: (\d+)", toparse)
+            write_size_4 = re.search(r"4-byte writes: (\d+)", toparse)
+            write_size_8 = re.search(r"8-byte writes: (\d+)", toparse)
+            write_size_16 = re.search(r"16-byte writes: (\d+)", toparse)
+            write_size_32 = re.search(r"32-byte writes: (\d+)", toparse)
+            write_size_64 = re.search(r"64-byte writes: (\d+)", toparse)
+            write_size_other = re.search(r"other-size writes: (\d+)", toparse)
+
             # Note: DynamoRIO memcount doesn't provide execution time, so we'll use a placeholder
             # or calculate frequency differently
             total_memory_refs = int(memory_refs)
@@ -177,10 +207,29 @@ class DrioProfilers(FrontendInterface):
                 "total_reads": int(reads),
                 "total_writes": int(writes),
                 "workingset_size": int(working_set_size),
-                # Without execution time, we can't calculate frequency, so omit these fields
-                # or set them to 0 if required by downstream code
+                "execution_time_us": execution_time_us,
+                "execution_time_ms": execution_time_ms,
+                "execution_time_s": execution_time_s,
+                # Size-specific read counts
+                "read_size_1": int(read_size_1.group(1)) if read_size_1 else 0,
+                "read_size_2": int(read_size_2.group(1)) if read_size_2 else 0,
+                "read_size_4": int(read_size_4.group(1)) if read_size_4 else 0,
+                "read_size_8": int(read_size_8.group(1)) if read_size_8 else 0,
+                "read_size_16": int(read_size_16.group(1)) if read_size_16 else 0,
+                "read_size_32": int(read_size_32.group(1)) if read_size_32 else 0,
+                "read_size_64": int(read_size_64.group(1)) if read_size_64 else 0,
+                "read_size_other": int(read_size_other.group(1)) if read_size_other else 0,
+                # Size-specific write counts
+                "write_size_1": int(write_size_1.group(1)) if write_size_1 else 0,
+                "write_size_2": int(write_size_2.group(1)) if write_size_2 else 0,
+                "write_size_4": int(write_size_4.group(1)) if write_size_4 else 0,
+                "write_size_8": int(write_size_8.group(1)) if write_size_8 else 0,
+                "write_size_16": int(write_size_16.group(1)) if write_size_16 else 0,
+                "write_size_32": int(write_size_32.group(1)) if write_size_32 else 0,
+                "write_size_64": int(write_size_64.group(1)) if write_size_64 else 0,
+                "write_size_other": int(write_size_other.group(1)) if write_size_other else 0,
             })
-            
+
             return self.data
         except AttributeError as e:
             print(f"Failed to extract data: {e}")

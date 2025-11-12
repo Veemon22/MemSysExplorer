@@ -168,7 +168,27 @@ class TimeSeriesParser:
                 'total_refs': sample.total_refs,
                 'wss_exact': sample.wss_exact,
                 'wss_approx': sample.wss_approx,
-                'timestamp': sample.timestamp
+                'timestamp': sample.timestamp,
+                'read_size_histogram': {
+                    '1': sample.read_size_1,
+                    '2': sample.read_size_2,
+                    '4': sample.read_size_4,
+                    '8': sample.read_size_8,
+                    '16': sample.read_size_16,
+                    '32': sample.read_size_32,
+                    '64': sample.read_size_64,
+                    'other': sample.read_size_other
+                },
+                'write_size_histogram': {
+                    '1': sample.write_size_1,
+                    '2': sample.write_size_2,
+                    '4': sample.write_size_4,
+                    '8': sample.write_size_8,
+                    '16': sample.write_size_16,
+                    '32': sample.write_size_32,
+                    '64': sample.write_size_64,
+                    'other': sample.write_size_other
+                }
             })
 
         return result

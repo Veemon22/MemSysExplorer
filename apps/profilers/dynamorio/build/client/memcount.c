@@ -132,6 +132,43 @@ typedef struct {
     uint64    sample_read_count;   /* reads in current window */
     uint64    sample_write_count;  /* writes in current window */
 
+    /* Per-window size-specific counters */
+    uint64 sample_read_size_1;
+    uint64 sample_read_size_2;
+    uint64 sample_read_size_4;
+    uint64 sample_read_size_8;
+    uint64 sample_read_size_16;
+    uint64 sample_read_size_32;
+    uint64 sample_read_size_64;
+    uint64 sample_read_size_other;
+    uint64 sample_write_size_1;
+    uint64 sample_write_size_2;
+    uint64 sample_write_size_4;
+    uint64 sample_write_size_8;
+    uint64 sample_write_size_16;
+    uint64 sample_write_size_32;
+    uint64 sample_write_size_64;
+    uint64 sample_write_size_other;
+
+    /* Size-specific counters for reads and writes (global per thread) */
+    uint64 read_size_1;    /* 1-byte reads */
+    uint64 read_size_2;    /* 2-byte reads */
+    uint64 read_size_4;    /* 4-byte reads */
+    uint64 read_size_8;    /* 8-byte reads */
+    uint64 read_size_16;   /* 16-byte reads */
+    uint64 read_size_32;   /* 32-byte reads */
+    uint64 read_size_64;   /* 64-byte reads */
+    uint64 read_size_other; /* other size reads */
+
+    uint64 write_size_1;    /* 1-byte writes */
+    uint64 write_size_2;    /* 2-byte writes */
+    uint64 write_size_4;    /* 4-byte writes */
+    uint64 write_size_8;    /* 8-byte writes */
+    uint64 write_size_16;   /* 16-byte writes */
+    uint64 write_size_32;   /* 32-byte writes */
+    uint64 write_size_64;   /* 64-byte writes */
+    uint64 write_size_other; /* other size writes */
+
 } per_thread_t;
 
 /* Cross-instrumentation-phase data. */
@@ -149,10 +186,33 @@ static uint64 global_num_writes;
 static uint64 global_working_set;
 static int tls_index;
 
+/* Global size-specific counters */
+static uint64 global_read_size_1 = 0;
+static uint64 global_read_size_2 = 0;
+static uint64 global_read_size_4 = 0;
+static uint64 global_read_size_8 = 0;
+static uint64 global_read_size_16 = 0;
+static uint64 global_read_size_32 = 0;
+static uint64 global_read_size_64 = 0;
+static uint64 global_read_size_other = 0;
+
+static uint64 global_write_size_1 = 0;
+static uint64 global_write_size_2 = 0;
+static uint64 global_write_size_4 = 0;
+static uint64 global_write_size_8 = 0;
+static uint64 global_write_size_16 = 0;
+static uint64 global_write_size_32 = 0;
+static uint64 global_write_size_64 = 0;
+static uint64 global_write_size_other = 0;
+
 /* Instruction threshold tracking */
 static uint64 global_instruction_count = 0;
 static void *instr_count_mutex = NULL;
 static volatile bool threshold_reached = false;
+
+/* Execution time tracking */
+static uint64 start_time_us = 0;
+static uint64 end_time_us = 0;
 
 /* Protobuf writers (global, single file for all threads) */
 static pb_trace_writer_t *global_trace_writer = NULL;
@@ -374,7 +434,13 @@ static void finalize_sample_window(per_thread_t *t) {
             t->sample_ref_count,        // total_refs
             s.distinct,                 // wss_exact
             wss_est,                    // wss_approx
-            get_timestamp()             // timestamp
+            get_timestamp(),            // timestamp
+            // Read size histograms
+            t->sample_read_size_1, t->sample_read_size_2, t->sample_read_size_4, t->sample_read_size_8,
+            t->sample_read_size_16, t->sample_read_size_32, t->sample_read_size_64, t->sample_read_size_other,
+            // Write size histograms
+            t->sample_write_size_1, t->sample_write_size_2, t->sample_write_size_4, t->sample_write_size_8,
+            t->sample_write_size_16, t->sample_write_size_32, t->sample_write_size_64, t->sample_write_size_other
         );
         dr_mutex_unlock(timeseries_mutex);
     }
@@ -389,6 +455,25 @@ static void finalize_sample_window(per_thread_t *t) {
     t->sample_ref_count = 0;
     t->sample_read_count = 0;
     t->sample_write_count = 0;
+
+    /* Reset per-window size counters */
+    t->sample_read_size_1 = 0;
+    t->sample_read_size_2 = 0;
+    t->sample_read_size_4 = 0;
+    t->sample_read_size_8 = 0;
+    t->sample_read_size_16 = 0;
+    t->sample_read_size_32 = 0;
+    t->sample_read_size_64 = 0;
+    t->sample_read_size_other = 0;
+    t->sample_write_size_1 = 0;
+    t->sample_write_size_2 = 0;
+    t->sample_write_size_4 = 0;
+    t->sample_write_size_8 = 0;
+    t->sample_write_size_16 = 0;
+    t->sample_write_size_32 = 0;
+    t->sample_write_size_64 = 0;
+    t->sample_write_size_other = 0;
+
     t->sample_idx++;
 }
 
@@ -437,6 +522,9 @@ dr_client_main(client_id_t id, int argc, const char *argv[])
     client_id = id;
     mutex = dr_mutex_create();
     dr_register_exit_event(event_exit);
+
+    /* Record start time */
+    start_time_us = dr_get_microseconds();
 
     hll_mutex = dr_mutex_create();
     DR_ASSERT(hll_init(&global_hll, config.hll_bits) == 0);
@@ -523,14 +611,58 @@ event_exit()
     int len;
     double hll_est_lines = hll_count(&global_hll);
 
+    /* Capture end time and calculate execution time */
+    end_time_us = dr_get_microseconds();
+    uint64 execution_time_us = end_time_us - start_time_us;
+    double execution_time_ms = execution_time_us / 1000.0;
+    double execution_time_sec = execution_time_us / 1000000.0;
+
     len = dr_snprintf(msg, sizeof(msg) / sizeof(msg[0]),
                         "Instrumentation results:\n"
                         "  saw %llu memory references\n"
                         "  number of reads: %llu\n"
                         "  number of writes: %llu\n"
-                        "  working set size: %llu\n",
-                        global_num_refs, global_num_reads, global_num_writes, global_working_set);
+                        "  working set size: %llu\n"
+                        "  execution time (us): %llu\n"
+                        "  execution time (ms): %.3f\n"
+                        "  execution time (s): %.6f\n",
+                        global_num_refs, global_num_reads, global_num_writes, global_working_set,
+                        execution_time_us, execution_time_ms, execution_time_sec);
     DR_ASSERT (len > 0);
+    NULL_TERMINATE_BUFFER(msg);
+    DISPLAY_STRING(msg);
+
+    /* Print size-specific read statistics */
+    len = dr_snprintf(msg, sizeof(msg)/sizeof(msg[0]),
+                    "Read size breakdown:\n"
+                    "  1-byte reads: %llu\n"
+                    "  2-byte reads: %llu\n"
+                    "  4-byte reads: %llu\n"
+                    "  8-byte reads: %llu\n"
+                    "  16-byte reads: %llu\n"
+                    "  32-byte reads: %llu\n"
+                    "  64-byte reads: %llu\n"
+                    "  other-size reads: %llu\n",
+                    global_read_size_1, global_read_size_2, global_read_size_4, global_read_size_8,
+                    global_read_size_16, global_read_size_32, global_read_size_64, global_read_size_other);
+    DR_ASSERT(len > 0);
+    NULL_TERMINATE_BUFFER(msg);
+    DISPLAY_STRING(msg);
+
+    /* Print size-specific write statistics */
+    len = dr_snprintf(msg, sizeof(msg)/sizeof(msg[0]),
+                    "Write size breakdown:\n"
+                    "  1-byte writes: %llu\n"
+                    "  2-byte writes: %llu\n"
+                    "  4-byte writes: %llu\n"
+                    "  8-byte writes: %llu\n"
+                    "  16-byte writes: %llu\n"
+                    "  32-byte writes: %llu\n"
+                    "  64-byte writes: %llu\n"
+                    "  other-size writes: %llu\n",
+                    global_write_size_1, global_write_size_2, global_write_size_4, global_write_size_8,
+                    global_write_size_16, global_write_size_32, global_write_size_64, global_write_size_other);
+    DR_ASSERT(len > 0);
     NULL_TERMINATE_BUFFER(msg);
     DISPLAY_STRING(msg);
 
@@ -621,6 +753,24 @@ event_thread_init(void *drcontext)
     }
     DR_ASSERT(hll_init(&data->hll, config.hll_bits) == 0);
 
+    /* Initialize size-specific counters */
+    data->read_size_1 = 0;
+    data->read_size_2 = 0;
+    data->read_size_4 = 0;
+    data->read_size_8 = 0;
+    data->read_size_16 = 0;
+    data->read_size_32 = 0;
+    data->read_size_64 = 0;
+    data->read_size_other = 0;
+    data->write_size_1 = 0;
+    data->write_size_2 = 0;
+    data->write_size_4 = 0;
+    data->write_size_8 = 0;
+    data->write_size_16 = 0;
+    data->write_size_32 = 0;
+    data->write_size_64 = 0;
+    data->write_size_other = 0;
+
     /* per-window sampling (only if WSS stats enabled) */
     if (config.wss_stat_tracking) {
         if (config.wss_exact_tracking) {
@@ -637,6 +787,24 @@ event_thread_init(void *drcontext)
         data->sample_read_count = 0;
         data->sample_write_count = 0;
         data->sample_idx = 0;
+
+        /* Initialize per-window size counters */
+        data->sample_read_size_1 = 0;
+        data->sample_read_size_2 = 0;
+        data->sample_read_size_4 = 0;
+        data->sample_read_size_8 = 0;
+        data->sample_read_size_16 = 0;
+        data->sample_read_size_32 = 0;
+        data->sample_read_size_64 = 0;
+        data->sample_read_size_other = 0;
+        data->sample_write_size_1 = 0;
+        data->sample_write_size_2 = 0;
+        data->sample_write_size_4 = 0;
+        data->sample_write_size_8 = 0;
+        data->sample_write_size_16 = 0;
+        data->sample_write_size_32 = 0;
+        data->sample_write_size_64 = 0;
+        data->sample_write_size_other = 0;
     } else {
         data->sample_ws = NULL;
         data->sample_ref_count = 0;
@@ -693,8 +861,28 @@ event_thread_exit(void *drcontext)
     dr_mutex_lock(mutex);
     global_num_refs += data->num_refs;
     global_num_reads += data->num_reads;
-    global_num_writes += data->num_writes; 
+    global_num_writes += data->num_writes;
     global_working_set += data->working_set;
+
+    /* Aggregate size-specific counters */
+    global_read_size_1 += data->read_size_1;
+    global_read_size_2 += data->read_size_2;
+    global_read_size_4 += data->read_size_4;
+    global_read_size_8 += data->read_size_8;
+    global_read_size_16 += data->read_size_16;
+    global_read_size_32 += data->read_size_32;
+    global_read_size_64 += data->read_size_64;
+    global_read_size_other += data->read_size_other;
+
+    global_write_size_1 += data->write_size_1;
+    global_write_size_2 += data->write_size_2;
+    global_write_size_4 += data->write_size_4;
+    global_write_size_8 += data->write_size_8;
+    global_write_size_16 += data->write_size_16;
+    global_write_size_32 += data->write_size_32;
+    global_write_size_64 += data->write_size_64;
+    global_write_size_other += data->write_size_other;
+
     dr_mutex_unlock(mutex);
 
     dr_mutex_lock(hll_mutex);
@@ -859,11 +1047,81 @@ memtrace(void *drcontext)
             if (config.wss_stat_tracking) {
                 data->sample_write_count++;
             }
+            /* Track size-specific write counts (global) */
+            switch(mem_ref->size) {
+                case 1:
+                    data->write_size_1++;
+                    if (config.wss_stat_tracking) data->sample_write_size_1++;
+                    break;
+                case 2:
+                    data->write_size_2++;
+                    if (config.wss_stat_tracking) data->sample_write_size_2++;
+                    break;
+                case 4:
+                    data->write_size_4++;
+                    if (config.wss_stat_tracking) data->sample_write_size_4++;
+                    break;
+                case 8:
+                    data->write_size_8++;
+                    if (config.wss_stat_tracking) data->sample_write_size_8++;
+                    break;
+                case 16:
+                    data->write_size_16++;
+                    if (config.wss_stat_tracking) data->sample_write_size_16++;
+                    break;
+                case 32:
+                    data->write_size_32++;
+                    if (config.wss_stat_tracking) data->sample_write_size_32++;
+                    break;
+                case 64:
+                    data->write_size_64++;
+                    if (config.wss_stat_tracking) data->sample_write_size_64++;
+                    break;
+                default:
+                    data->write_size_other++;
+                    if (config.wss_stat_tracking) data->sample_write_size_other++;
+                    break;
+            }
         } else {
             num_reads++;
             /* Track per-window read count for protobuf */
             if (config.wss_stat_tracking) {
                 data->sample_read_count++;
+            }
+            /* Track size-specific read counts (global) */
+            switch(mem_ref->size) {
+                case 1:
+                    data->read_size_1++;
+                    if (config.wss_stat_tracking) data->sample_read_size_1++;
+                    break;
+                case 2:
+                    data->read_size_2++;
+                    if (config.wss_stat_tracking) data->sample_read_size_2++;
+                    break;
+                case 4:
+                    data->read_size_4++;
+                    if (config.wss_stat_tracking) data->sample_read_size_4++;
+                    break;
+                case 8:
+                    data->read_size_8++;
+                    if (config.wss_stat_tracking) data->sample_read_size_8++;
+                    break;
+                case 16:
+                    data->read_size_16++;
+                    if (config.wss_stat_tracking) data->sample_read_size_16++;
+                    break;
+                case 32:
+                    data->read_size_32++;
+                    if (config.wss_stat_tracking) data->sample_read_size_32++;
+                    break;
+                case 64:
+                    data->read_size_64++;
+                    if (config.wss_stat_tracking) data->sample_read_size_64++;
+                    break;
+                default:
+                    data->read_size_other++;
+                    if (config.wss_stat_tracking) data->sample_read_size_other++;
+                    break;
             }
         }
         ++mem_ref;
