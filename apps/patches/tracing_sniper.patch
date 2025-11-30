@@ -1,3 +1,20 @@
+diff --git a/Makefile b/Makefile
+index f594145..8b6be45 100644
+--- a/Makefile
++++ b/Makefile
+@@ -186,10 +186,11 @@ $(XED_INSTALL_DEP):
+ 	$(_CMD) git -C $(XED_INSTALL) reset --quiet --hard $(XED_GITID)
+
+ XED_DEP=$(XED_HOME)/include/xed/xed-iclass-enum.h
++XED_PYTHON=/usr/bin/python3
+ xed: mbuild xed_install $(XED_DEP)
+ $(XED_DEP): $(XED_INSTALL_DEP)
+ 	$(_MSG) '[INSTAL] xed'
+-	$(_CMD) cd $(XED_INSTALL) ; ./mfile.py --silent --extra-flags=-fPIC --shared --install-dir $(XED_HOME) install
++	$(_CMD) cd $(XED_INSTALL) ; ./mfile.py --python $(XED_PYTHON) --silent --extra-flags=-fPIC --shared --install-dir $(XED_HOME) install
+
+ ifneq (,$(USE_PIN))
+ PIN_DOWNLOAD=https://snipersim.org/packages/pin-external-3.31-98869-gfa6f126a8-gcc-linux.tar.gz
 diff --git a/common/core/memory_subsystem/parametric_dram_directory_msi/cache_cntlr.cc b/common/core/memory_subsystem/parametric_dram_directory_msi/cache_cntlr.cc
 index b966565..b55a755 100644
 --- a/common/core/memory_subsystem/parametric_dram_directory_msi/cache_cntlr.cc
