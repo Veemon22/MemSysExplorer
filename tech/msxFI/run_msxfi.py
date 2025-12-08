@@ -21,6 +21,8 @@ def parse_args():
                         help="Standard deviation of threshold voltage (Vth) in mV for DRAM fault rate calculation (default: 50mV).")
     parser.add_argument('--vdd', type=float, 
                         help="Custom vdd in volts for DRAM modes. If not provided, uses default vdd from pickle file.")
+    parser.add_argument('--vpp', type=float, default=1.4,
+                        help="Custom Vpp in volts for DRAM modes. If not provided, uses default vpp from pickle file.")
     # MLC specific
     parser.add_argument('--rep_conf', nargs='*', default=[8, 8],
                         help="Array of number of levels per cell used for storage per data value, e.g.: --rep_conf 8 8")
@@ -40,10 +42,12 @@ def parse_args():
     # DNN evaluation
     parser.add_argument('--eval_dnn', action='store_true', default=False,
                         help="Enable DNN fault injection for the selected mode.")
-    parser.add_argument('--model', type=str, default='example_nn/lenet/checkpoints/lenet.pth',
+    parser.add_argument('--model', type=str, default=None,
                         help="Path to the pre-trained DNN model (.pth file) for all DNN modes.")
-    parser.add_argument('--model_def', type=str, default='example_nn/lenet/model.py',
+    parser.add_argument('--model_def', type=str, default=None,
                         help="Path to the Python file containing the model class definition (required for DNN modes).")
+    parser.add_argument('--model_class', type=str, default=None,
+                        help="Name of the model class or constructor function in the model definition file.", choices=['LeNet', 'ResNet18'])
 
     return parser.parse_args()
 
@@ -77,6 +81,8 @@ def generate_output_filename(model_path, mem_model, args):
         filename_parts.append(f"rt{args.refresh_t}")
         if args.vdd is not None:
             filename_parts.append(f"vdd{args.vdd}")
+        if args.vpp is not None:
+            filename_parts.append(f"vpp{args.vpp}")
             
     filename = "_".join(filename_parts) + ext
     
@@ -130,6 +136,9 @@ def main():
         if args.vdd is not None:
             base_params['custom_vdd'] = args.vdd
             param_info = f"refresh_t={args.refresh_t}us, vth_sigma={args.vth_sigma}mV, vdd={args.vdd}V"
+        elif args.vpp is not None:
+            base_params['custom_vpp'] = args.vpp
+            param_info = f"refresh_t={args.refresh_t}us, vth_sigma={args.vth_sigma}mV, vpp={args.vpp}V"
         else:
             param_info = f"refresh_t={args.refresh_t}us, vth_sigma={args.vth_sigma}mV"
     else:
@@ -139,9 +148,15 @@ def main():
 
     if args.eval_dnn:
         print(f"Running {args.mode.upper()} DNN Fault Injection\n\n")
+
+        if not all([args.model, args.model_def, args.model_class]):
+            print("Error: For DNN fault injection, --model, --model_def, and --model_class must all be specified.")
+            return
+        
         base_params.update({
             'model_def_path': args.model_def,
-            'model_path': args.model
+            'model_path': args.model,
+            'model_class_name': args.model_class
         })
         print(f"Injecting {args.mode.upper()} faults into DNN model with seed {args.seed}, {param_info}...")
         

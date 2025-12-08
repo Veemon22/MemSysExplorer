@@ -8,8 +8,9 @@ import cProfile, pstats
 from .fi_utils import *
 from . import fi_config
 from .data_transforms import *
+import torch.nn as nn
 
-def mat_fi(mat, seed=0, int_bits=2, frac_bits=6, rep_conf = np.array([2, 2, 2, 2, 2, 2, 2, 2]), q_type = 'signed', encode = 'dense', refresh_t=None, vth_sigma=0.05, custom_vdd=None):
+def mat_fi(mat, seed=0, int_bits=2, frac_bits=6, rep_conf = np.array([2, 2, 2, 2, 2, 2, 2, 2]), q_type = 'signed', encode = 'dense', refresh_t=None, vth_sigma=0.05, custom_vdd=None, custom_vpp=None):
   """ Single fault injection experiment for an input matrix with provided quantization, datatype, optional envocing per value to MLCs, and optional sparse encoding
   Or, if mem_model contains 'dram', simulates DRAM faults.
 
@@ -23,13 +24,14 @@ def mat_fi(mat, seed=0, int_bits=2, frac_bits=6, rep_conf = np.array([2, 2, 2, 2
   :param refresh_t: refresh time in seconds for DRAM models
   :param vth_sigma: standard deviation of Vth in Volts for DRAM fault rate calculation
   :param custom_vdd: custom vdd in volts for DRAM models (optional)
+  :param custom_vpp: custom vpp in volts for DRAM models (optional)
   """
     
   np.random.seed(seed)
   torch.manual_seed(seed)
 
   if 'dram' in fi_config.mem_model:
-    error_map = get_error_map(None, refresh_t=refresh_t, vth_sigma=vth_sigma, custom_vdd=custom_vdd)
+    error_map = get_error_map(None, refresh_t=refresh_t, vth_sigma=vth_sigma, custom_vdd=custom_vdd, custom_vpp=custom_vpp)
     shape = mat.shape
     flattened_mat = torch.from_numpy(mat).view(-1)
     if fi_config.pt_device == "cuda":
@@ -85,13 +87,14 @@ def mat_fi(mat, seed=0, int_bits=2, frac_bits=6, rep_conf = np.array([2, 2, 2, 2
 
     return mat
 
-def dnn_fi(model=None, model_def_path=None, model_path=None, seed=0, int_bits=2, frac_bits=6, rep_conf = np.array([2, 2, 2, 2, 2, 2, 2, 2]), q_type = 'signed', encode = 'dense', refresh_t=None, vth_sigma=0.05, custom_vdd=None):
+def dnn_fi(model=None, model_def_path=None, model_path=None, model_class_name=None, seed=0, int_bits=2, frac_bits=6, rep_conf = np.array([2, 2, 2, 2, 2, 2, 2, 2]), q_type = 'signed', encode = 'dense', refresh_t=None, vth_sigma=0.05, custom_vdd=None, custom_vpp=None):
   """ Single fault injection experiment for an input DNN model.
   Supports NVM fault injection (original mode) or DRAM fault injection.
 
   :param model: input dnn model (injection on all weights) - for backward compatibility
   :param model_def_path: path to Python file containing model class definition
   :param model_path: path to saved model file (.pth)
+  :param model_class_name: name of the model class or constructor function in the model definition file
   :param seed: random seed for fault modeling
   :param int_bits: number of integer bits for data format
   :param frac_bits: number of fractional bits for data format
@@ -101,23 +104,46 @@ def dnn_fi(model=None, model_def_path=None, model_path=None, seed=0, int_bits=2,
   :param refresh_t: refresh time in seconds for DRAM models
   :param vth_sigma: standard deviation of Vth in Volts for DRAM fault rate calculation
   :param custom_vdd: custom vdd in volts for DRAM models (optional)
+  :param custom_vpp: custom vpp in volts for DRAM models (optional)
   """ 
   np.random.seed(seed)
   torch.manual_seed(seed)
 
   if model is None and model_def_path is not None and model_path is not None:
     print(f"Loading model class from {model_def_path}...")
-    import_model_class(model_def_path)
-    print(f"Successfully imported model class from {model_def_path}")
+    model_module = import_model_class(model_def_path)
+    if not model_class_name:
+        raise ValueError("model_class_name must be provided to load a model from a definition file.")
     
     print(f"Loading DNN model from {model_path}...")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = torch.load(model_path, map_location=device, weights_only=False)
+    checkpoint = torch.load(model_path, map_location=device, weights_only=False)
+    
+    if isinstance(checkpoint, nn.Module):
+        # Case 1: Checkpoint is a model object (e.g., LeNet)
+        model = checkpoint
+    else:
+        # Case 2: Checkpoint is a dictionary (e.g., ResNet18)
+        model_constructor = getattr(model_module, model_class_name)
+        model = model_constructor(num_classes=10)
+        
+        if 'net' in checkpoint:
+            state_dict = checkpoint['net']
+        else:
+            state_dict = checkpoint
+
+        # Handle DataParallel prefix if present
+        if list(state_dict.keys())[0].startswith('module.'):
+            unwrapped_state_dict = {k.partition('module.')[2]: v for k, v in state_dict.items()}
+            model.load_state_dict(unwrapped_state_dict)
+        else:
+            model.load_state_dict(state_dict)
+    
     model.to(device)
     print(f"Loaded DNN model from {model_path}. Model type: {type(model).__name__}")
 
   if 'dram' in fi_config.mem_model:
-    error_map = get_error_map(None, refresh_t=refresh_t, vth_sigma=vth_sigma, custom_vdd=custom_vdd)
+    error_map = get_error_map(None, refresh_t=refresh_t, vth_sigma=vth_sigma, custom_vdd=custom_vdd, custom_vpp=custom_vpp)
     for name, weights in model.named_parameters():
         if weights.requires_grad:
             w = weights.data

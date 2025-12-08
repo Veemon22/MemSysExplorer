@@ -96,6 +96,7 @@ python run_msxfi.py \
   --eval_dnn \
   --model /path/to/your/model.pth \
   --model_def /path/to/your/model.py \
+  --model_class YourModelClass \
   --refresh_t 100 \
   --vth_sigma 50 \
   --q_type afloat \
@@ -107,6 +108,7 @@ python run_msxfi.py \
 - `--eval_dnn`: Activates DNN fault injection mode.
 - `--model`: Path to your pre-trained PyTorch model file (`.pth`).
 - `--model_def`: Path to the Python script containing your model's class definition.
+- `--model_class`: The name of your model's class within the definition file.
 
 ## Parameter Reference
 
@@ -126,7 +128,9 @@ Below is a summary of all command-line parameters for `run_msxfi.py`:
 | `--refresh_t`     | Refresh time in microseconds (required for DRAM models).                                                     | N/A           | DRAM models         |
 | `--vth_sigma`     | Standard deviation of threshold voltage (Vth) in mV.                                                       | 50            | DRAM models         |
 | `--vdd`           | Custom vdd in volts for DRAM models. If not provided, uses default vdd from pickle file.        | N/A           | DRAM models         |
+| `--vpp`           | Custom vpp in volts for DRAM models models.                                                       | 1.4           | DRAM models         |
 | `--rep_conf`      | Rep conf for MLC encoding. Space-separated integers (e.g., `2 2 4`).                         | `[8, 8]`      | NVM models          |
+| `--model_class`   | Name of the model class in the model definition file.                                            | N/A           | DNN FI              |
 
 ## Configuration Deep Dive
 
@@ -218,7 +222,7 @@ This updates `dram1t_args.p` and `dram3t_args.p` in `msxFI/mem_data/`.
 
 ## End-to-End Example: LeNet on MNIST
 
-The `msxFI/example_nn/lenet/` directory provides a complete, runnable example of using `msxFI` to inject faults into a LeNet CNN and evaluate its impact on accuracy. This is the best place to see the framework in action.
+The `msxFI/example_nn/lenet/` directory provides a complete, runnable example of using `msxFI` to inject faults into a LeNet CNN and evaluate its impact on accuracy. This is the best place to see the framework in action. A similar example for ResNet-18 on CIFAR-10 is available in `msxFI/example_nn/resnet18/`.
 
 The example includes scripts to train the model and to run the fault-injection evaluation. For detailed instructions, please refer to the dedicated README in that directory:
 
@@ -236,7 +240,8 @@ msxFI/
 │   ├── bitmask_utils.py        # Sparse encoding utilities for bitmask format
 │   └── graph_utils.py          # Graph processing utilities (requires snapPY)
 ├── example_nn/         # Example neural network
-│   └── lenet/          # LeNet CNN implementation and training scripts
+│   ├── lenet/          # LeNet CNN implementation and training scripts
+│   └── resnet18/       # ResNet-18 CNN implementation and training scripts
 ├── fi_config.py        # Core configuration parameters (temperature, feature_size, etc.)
 ├── fi_utils.py         # Utilities for fault injection, error map generation
 └── fault_injection.py  # Main fault injection logic
@@ -250,7 +255,7 @@ run_msxfi.py            # Command-line interface script
 - **Matrix Mode**: Displays original vs. faulty matrices, highlighting differences.
 - **DNN Mode**: Saves fault-injected model weights to the original model's directory. Filenames are generated to include key parameters for easy identification.
   - **NVM Example**: `modelname_rram_mlc_s0_qafloat_i2_f4.pth`
-  - **DRAM Example**: `modelname_dram1t_s0_qfloat32_rt80.pth`
+  - **DRAM Example**: `modelname_dram1t_s0_qfloat32_rt80_vpp1.4.pth`
 
 ## Contributing
 
