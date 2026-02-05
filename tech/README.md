@@ -15,10 +15,3 @@ A modified version of NVSim for circuit-level modeling of memory arrays. It esti
 
 A framework for injecting faults into neural networks to evaluate their resilience to memory errors.
 - **Documentation:** [msxFI/README.md](msxFI/README.md)
-
-### 3. PINN (Device Characterization)
-**Directory:** `pinn/`
-
-A Physics-Informed Neural Network (PINN) module for characterizing RRAM devices and automatically generating NVSim configuration files.
-- **Documentation:** [pinn/README.md](pinn/README.md)
-
