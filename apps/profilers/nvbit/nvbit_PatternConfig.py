@@ -33,9 +33,10 @@ class NVBitConfig(PatternConfig):
             write_freq=report_data.get("write_freq"),
             total_writes=report_data.get("total_writes"),
             workingset_size=report_data.get("workingset_size"),
+            execution_time=report_data.get("execution_time"),
             read_size=report_data.get("read_size", 4),  # default 4B
             write_size=report_data.get("write_size", 4),
-            unit = unit_override,
+            unit=unit_override,
             metadata=metadata
         )
 

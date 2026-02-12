@@ -32,14 +32,27 @@
 #include <stdint.h>
 #include <atomic>
 #include <unordered_map>
+#include <pthread.h>
+
+/* Include ws_tsearch for exact working set size tracking */
+extern "C" {
+#include "ws_tsearch.h"
+}
+
+/* Cache line size for WSS calculation (64 bytes) */
+#define CACHE_LINE_SIZE 64
+#define CACHE_LINE_MASK (~((uint64_t)(CACHE_LINE_SIZE - 1)))
 
 /* Global accumulative counters */
 static std::atomic<uint64_t> global_load_count(0);
 static std::atomic<uint64_t> global_store_count(0);
-static std::atomic<uint64_t> global_working_set(0);
 static std::unordered_map<uint64_t, uint64_t> global_read_freq;
 static std::unordered_map<uint64_t, uint64_t> global_write_freq;
 static int access_word_size = -1;
+
+/* Working set tracking using ws_tsearch (exact counting) */
+static ws_ctx_t *global_ws_ctx = NULL;
+static pthread_mutex_t ws_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* information collected in the instrumentation function and passed
  * on the channel from the GPU to the CPU */
