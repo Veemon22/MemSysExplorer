@@ -421,9 +421,7 @@ class PerfProfilers(FrontendInterface):
         print(f"  L1 -> L2:         {self.data.get('l1_to_l2_bytes', 0) / 1e6:.2f} MB")
         print(f"  L2 -> L3:         {self.data.get('l2_to_l3_bytes', 0) / 1e6:.2f} MB")
         print(f"  L3 -> DRAM:       {self.data.get('l3_to_dram_bytes', 0) / 1e6:.2f} MB")
-
-        print("=" * 70 + "\n")
-
+        
     @classmethod
     def required_profiling_args(cls):
         """Define required arguments for profiling."""

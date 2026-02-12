@@ -4,16 +4,22 @@ from profilers.PatternConfig import PatternConfig
 class SniperConfig(PatternConfig):
     def __init__(self, **kwargs):
         """
-        Initialize SniperConfig with additional size histogram fields.
+        Initialize SniperConfig with additional size histogram and cache hit/miss fields.
 
         Parameters
         ----------
         **kwargs : dict
-            Configuration parameters, including size histogram data
+            Configuration parameters, including size histogram data and cache stats
         """
         # Extract size histograms before calling parent init
         self.read_size_histogram = kwargs.pop('read_size_histogram', {})
         self.write_size_histogram = kwargs.pop('write_size_histogram', {})
+
+        # Extract cache hit/miss stats
+        self.load_hits = kwargs.pop('load_hits', 0)
+        self.load_misses = kwargs.pop('load_misses', 0)
+        self.store_hits = kwargs.pop('store_hits', 0)
+        self.store_misses = kwargs.pop('store_misses', 0)
 
         # Call parent constructor
         super().__init__(**kwargs)
@@ -156,6 +162,20 @@ class SniperConfig(PatternConfig):
                 total_writes += get_value(f"{prefix}.stores")[core_id]
                 workingset_size += get_value(f"{prefix}.workingset-size")[core_id]
 
+            # Extract cache hit/miss statistics
+            # Misses are directly reported; hits = accesses - misses
+            load_misses = 0
+            store_misses = 0
+            for prefix in prefixes:
+                load_misses += get_value(f"{prefix}.load-misses")[core_id]
+                # L1-I doesn't have store-misses (instruction cache)
+                if prefix != "L1-I":
+                    store_misses += get_value(f"{prefix}.store-misses")[core_id]
+
+            # Calculate hits (hits = total accesses - misses)
+            load_hits = max(0, total_reads - load_misses)
+            store_hits = max(0, total_writes - store_misses)
+
             # Build size histograms based on cache level
             read_size_histogram = {}
             write_size_histogram = {}
@@ -221,7 +241,11 @@ class SniperConfig(PatternConfig):
                 "write_freq": "count/s",
                 "total_reads": "count",
                 "total_write": "count",
-                "workingset_size": "count"
+                "workingset_size": "count",
+                "load_hits": "count",
+                "load_misses": "count",
+                "store_hits": "count",
+                "store_misses": "count"
             }
 
             pattern_config = cls(
@@ -236,6 +260,10 @@ class SniperConfig(PatternConfig):
                 read_size_histogram=read_size_histogram,
                 write_size_histogram=write_size_histogram,
                 workingset_size=workingset_size,
+                load_hits=load_hits,
+                load_misses=load_misses,
+                store_hits=store_hits,
+                store_misses=store_misses,
                 metadata=metadata,
                 unit=unit_overrides  # Set unit override here
             )

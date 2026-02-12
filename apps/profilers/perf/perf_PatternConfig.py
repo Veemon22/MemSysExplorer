@@ -1,6 +1,24 @@
 from profilers.PatternConfig import PatternConfig
 
 class PerfConfig(PatternConfig):
+    def __init__(self, **kwargs):
+        """
+        Initialize PerfConfig with additional cache hit/miss fields.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Configuration parameters, including cache hit/miss stats
+        """
+        # Extract cache hit/miss stats before calling parent init
+        self.load_hits = kwargs.pop('load_hits', 0)
+        self.load_misses = kwargs.pop('load_misses', 0)
+        self.store_hits = kwargs.pop('store_hits', 0)
+        self.store_misses = kwargs.pop('store_misses', 0)
+
+        # Call parent constructor
+        super().__init__(**kwargs)
+
     @classmethod
     def populating(cls, report_data, metadata=None, level="custom"):
         """
@@ -80,6 +98,15 @@ class PerfConfig(PatternConfig):
         total_writes_d = 0
         total_writes_i = 0
 
+        # Cache hit/miss tracking
+        load_hits = 0
+        load_misses = 0
+        store_hits = 0
+        store_misses = 0
+
+        # L1 store misses (from RFO total - stores that missed L1 go to L2 as RFO)
+        l1d_store_misses = report_data.get('l1d_store_misses', l2_rfo_total)
+
         # =================================================================
         # Level-specific calculations
         # =================================================================
@@ -92,6 +119,12 @@ class PerfConfig(PatternConfig):
             total_writes_d = l1d_stores
             total_writes_i = 0
             total_writes = total_writes_d
+
+            # L1 hit/miss: hits = total - misses
+            load_hits = max(0, l1d_loads - l1d_load_misses)
+            load_misses = l1d_load_misses
+            store_hits = max(0, l1d_stores - l1d_store_misses)
+            store_misses = l1d_store_misses
 
             read_freq = total_reads / time_elapsed if time_elapsed else 0
             write_freq = total_writes / time_elapsed if time_elapsed else 0
@@ -109,6 +142,12 @@ class PerfConfig(PatternConfig):
             total_reads_i = l1i_load_misses
             total_writes_d = l2_write_hits + l2_write_misses if (l2_write_hits + l2_write_misses) > 0 else l2_total_writes
             total_writes_i = 0
+
+            # L2 hit/miss
+            load_hits = l2_read_hits
+            load_misses = l2_read_misses
+            store_hits = l2_write_hits
+            store_misses = l2_write_misses
 
             read_freq = total_reads / time_elapsed if time_elapsed else 0
             write_freq = total_writes / time_elapsed if time_elapsed else 0
@@ -134,6 +173,16 @@ class PerfConfig(PatternConfig):
             total_writes_d = total_writes
             total_writes_i = 0
 
+            # L3 hit/miss
+            load_hits = l3_read_hits
+            load_misses = l3_read_misses
+            # Store hits/misses at L3 not directly tracked by perf events
+            # Use LLC generic events as fallback
+            llc_stores = report_data.get('llc_stores', 0)
+            llc_store_misses = report_data.get('llc_store_misses', 0)
+            store_hits = max(0, llc_stores - llc_store_misses) if llc_stores > 0 else 0
+            store_misses = llc_store_misses
+
             read_freq = total_reads / time_elapsed if time_elapsed else 0
             write_freq = total_writes / time_elapsed if time_elapsed else 0
 
@@ -147,8 +196,27 @@ class PerfConfig(PatternConfig):
             total_writes_d = 0
             total_writes_i = 0
 
+            # DRAM is final level - all accesses are "hits" (served by memory)
+            # No misses at DRAM level
+            load_hits = total_reads
+            load_misses = 0
+            store_hits = total_writes
+            store_misses = 0
+
             read_freq = total_reads / time_elapsed if time_elapsed else 0
             write_freq = total_writes / time_elapsed if time_elapsed else 0
+
+        # Unit overrides for hit/miss fields
+        unit_overrides = {
+            "read_freq": "count/s",
+            "write_freq": "count/s",
+            "total_reads": "count",
+            "total_writes": "count",
+            "load_hits": "count",
+            "load_misses": "count",
+            "store_hits": "count",
+            "store_misses": "count"
+        }
 
         return cls(
             exp_name="PerfProfilers",
@@ -163,6 +231,11 @@ class PerfConfig(PatternConfig):
             total_writes_i=total_writes_i,
             read_size=64,  # Cache line size (64 bytes)
             write_size=64,
-            metadata=metadata
+            load_hits=load_hits,
+            load_misses=load_misses,
+            store_hits=store_hits,
+            store_misses=store_misses,
+            metadata=metadata,
+            unit=unit_overrides
         )
 
