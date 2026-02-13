@@ -27,7 +27,7 @@ nvbit: check_all
 
 clean:
 	@rm -rf $(NVBIT_DIR) $(NVBIT_ARCHIVE) lib
-	@rm -f *.so *.o
+	@rm -f *.so *.o ws_tsearch.o
 	@echo "Cleaned NVBit installation."
 
 # Check if an NVIDIA GPU is available and has a supported driver version
@@ -94,14 +94,20 @@ MAXRREGCOUNT_FLAG=
 endif
 
 NVBIT_PATH=./nvbit_release/core
-INCLUDES=-I$(NVBIT_PATH)
+COMMON_PATH=../common
+
+INCLUDES=-I$(NVBIT_PATH) -I$(COMMON_PATH)/include
 
 LIBS=-L$(NVBIT_PATH) -lnvbit
+
+# Common library sources
+COMMON_SOURCES=$(COMMON_PATH)/src/ws_tsearch.c
 NVCC_PATH=-L $(subst bin/nvcc,lib64,$(shell which nvcc | tr -s /))
 
 SOURCES=$(wildcard *.cu)
 
 OBJECTS=$(SOURCES:.cu=.o)
+COMMON_OBJECTS=ws_tsearch.o
 ARCH?=all
 
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
@@ -114,12 +120,17 @@ build_client: lib $(NVBIT_TOOL)
 lib:
 	@mkdir -p lib
 
-$(NVBIT_TOOL): $(OBJECTS) $(NVBIT_PATH)/libnvbit.a
-	$(NVCC) -arch=$(ARCH) -O3 $(OBJECTS) $(LIBS) $(NVCC_PATH) -lcuda -lcudart_static -shared -o $@
+$(NVBIT_TOOL): $(OBJECTS) $(COMMON_OBJECTS) $(NVBIT_PATH)/libnvbit.a
+	$(NVCC) -arch=$(ARCH) -O3 $(OBJECTS) $(COMMON_OBJECTS) $(LIBS) $(NVCC_PATH) -lcuda -lcudart_static -shared -o $@
 
 %.o: %.cu
 	$(NVCC) -dc -c -std=c++11 $(INCLUDES) -Xptxas -cloning=no -Xcompiler -Wall -arch=$(ARCH) -O3 -Xcompiler -fPIC $< -o $@
 
 inject_funcs.o: inject_funcs.cu
 	$(NVCC) $(INCLUDES) $(MAXRREGCOUNT_FLAG) -Xptxas -astoolspatch --keep-device-functions -arch=$(ARCH) -Xcompiler -Wall -Xcompiler -fPIC -c $< -o $@
+
+# Compile common library sources (C code) - must use CC not CXX for C files
+# Note: ws_tsearch.c already defines _GNU_SOURCE internally, so we don't pass it here
+ws_tsearch.o: $(COMMON_PATH)/src/ws_tsearch.c
+	$(CC) -c -O3 -fPIC $(INCLUDES) $< -o $@
 

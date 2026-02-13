@@ -95,6 +95,7 @@ bool skip_callback_flag = false;
 uint32_t instr_begin_interval = 0;
 uint32_t instr_end_interval = UINT32_MAX;
 int verbose = 0;
+int trace_enable = 0;
 
 /* opcode to id map and reverse map  */
 std::map<std::string, int> opcode_to_id_map;
@@ -117,6 +118,7 @@ void nvbit_at_init() {
         instr_end_interval, "INSTR_END", UINT32_MAX,
         "End of the instruction interval where to apply instrumentation");
     GET_VAR_INT(verbose, "TOOL_VERBOSE", 0, "Enable verbosity inside the tool");
+    GET_VAR_INT(trace_enable, "NVBIT_TRACE_ENABLE", 0, "Enable memory trace output to traces.txt");
     std::string pad(100, '-');
     printf("%s\n", pad.c_str());
 
@@ -127,6 +129,12 @@ void nvbit_at_init() {
     pthread_mutex_init(&mutex, &attr);
 
     pthread_mutex_init(&cuda_event_mutex, &attr);
+
+    /* Initialize working set tracking context */
+    global_ws_ctx = ws_create();
+    if (!global_ws_ctx) {
+        fprintf(stderr, "Error: Failed to create working set context\n");
+    }
 }
 
 /* Set used to avoid re-instrumenting the same functions multiple times */
@@ -486,14 +494,15 @@ void* recv_thread_fun(void* args) {
     pthread_mutex_unlock(&mutex);
     char* recv_buffer = (char*)malloc(CHANNEL_SIZE);
 
-    /* Open a file to write the memory traces */
-    //FILE* trace_file = fopen("traces.txt", "a"); // Append mode to keep data across runs
-    //if (!trace_file) {
-    //    fprintf(stderr, "Error opening traces.txt for writing!\n");
-    //    free(recv_buffer);
-    //    return NULL;
-    //}
-    
+    /* Open a file to write the memory traces if enabled */
+    FILE* trace_file = NULL;
+    if (trace_enable) {
+        trace_file = fopen("traces.txt", "w");
+        if (!trace_file) {
+            fprintf(stderr, "Error opening traces.txt for writing!\n");
+        }
+    }
+
     while (ctx_state->recv_thread_done == RecvThreadState::WORKING) {
         /* receive buffer from channel */
         uint32_t num_recv_bytes = ch_host->recv(recv_buffer, CHANNEL_SIZE);
@@ -501,57 +510,55 @@ void* recv_thread_fun(void* args) {
             uint32_t num_processed_bytes = 0;
             while (num_processed_bytes < num_recv_bytes) {
                 mem_access_t* ma = (mem_access_t*)&recv_buffer[num_processed_bytes];
-                
-		/* Accumulate load/store counts */
+
+                /* Accumulate load/store counts */
                 global_load_count += ma->load_count;
                 global_store_count += ma->store_count;
 
-		// Set access word size once
-            	if (access_word_size == -1) {
-                	access_word_size = ma->access_size;
-            	}
-
-		// Record address data
-                for (int i = 0; i < 32; i++) {
-                    uint64_t addr = ma->addrs[i];
-                    global_working_set++;
-
-                    if (ma->load_count > 0) global_read_freq[addr]++;
-                    if (ma->store_count > 0) global_write_freq[addr]++;
+                // Set access word size once
+                if (access_word_size == -1) {
+                    access_word_size = ma->access_size;
                 }
 
+                // Record address data using ws_tsearch for exact WSS
+                for (int i = 0; i < 32; i++) {
+                    uint64_t addr = ma->addrs[i];
+                    if (addr != 0) {
+                        /* Align address to cache line for WSS calculation */
+                        uintptr_t cache_line_key = addr & CACHE_LINE_MASK;
 
-		//Original Line
-                //std::stringstream ss;
-                //ss << "CTX " << HEX(ctx) << " - grid_launch_id "
-                //   << ma->grid_launch_id << " - CTA " << ma->cta_id_x << ","
-                //   << ma->cta_id_y << "," << ma->cta_id_z << " - warp "
-                //   << ma->warp_id << " - " << id_to_opcode_map[ma->opcode_id]
-                 //  << " - ";
+                        /* Thread-safe recording of unique cache lines */
+                        pthread_mutex_lock(&ws_mutex);
+                        ws_record(global_ws_ctx, cache_line_key);
+                        pthread_mutex_unlock(&ws_mutex);
 
-		//#for (int i = 0; i < 32; i++) {
-                //    ss << HEX(ma->addrs[i]) << " ";
-                //}
+                        if (ma->load_count > 0) global_read_freq[addr]++;
+                        if (ma->store_count > 0) global_write_freq[addr]++;
+                    }
+                }
 
-		//printf("MEMTRACE: %s\n", ss.str().c_str());
+                /* Write trace data to file if enabled */
+                if (trace_file) {
+                    fprintf(trace_file, "CTX 0x%lx - grid_launch_id %ld - CTA %d,%d,%d - warp %d - %s - ",
+                            (uint64_t)ctx, ma->grid_launch_id, ma->cta_id_x, ma->cta_id_y, ma->cta_id_z,
+                            ma->warp_id, id_to_opcode_map[ma->opcode_id].c_str());
+                    for (int i = 0; i < 32; i++) {
+                        fprintf(trace_file, "0x%016lx ", ma->addrs[i]);
+                    }
+                    fprintf(trace_file, "\n");
+                }
+
                 num_processed_bytes += sizeof(mem_access_t);
-		
-                /* Write trace data to file */
-		//fprintf(trace_file, "CTX 0x%lx - grid_launch_id %ld - CTA %d,%d,%d - warp %d - %s - ",
-                //        (uint64_t)ctx, ma->grid_launch_id, ma->cta_id_x, ma->cta_id_y, ma->cta_id_z,
-                //        ma->warp_id, id_to_opcode_map[ma->opcode_id].c_str());
-
-                //for (int i = 0; i < 32; i++) {
-                //    fprintf(trace_file, "0x%016lx ", ma->addrs[i]);
-                //}
-                //fprintf(trace_file, "\n"); // Newline for next entry
-
-                //num_processed_bytes += sizeof(mem_access_t);
             }
-	    //fflush(trace_file);
+            if (trace_file) {
+                fflush(trace_file);
+            }
         }
     }
-    //fclose(trace_file);
+
+    if (trace_file) {
+        fclose(trace_file);
+    }
     free(recv_buffer);
     ctx_state->recv_thread_done = RecvThreadState::FINISHED;
     return NULL;
@@ -601,6 +608,12 @@ void nvbit_at_ctx_term(CUcontext ctx) {
     std::chrono::duration<double> elapsed_seconds = end_time - start_time;
     double elapsed_time_sec = elapsed_seconds.count();
 
+    /* Get working set statistics using ws_tsearch */
+    ws_stats_t ws_stats = {0, 0, 0};
+    if (global_ws_ctx) {
+        ws_get_stats(global_ws_ctx, &ws_stats);
+    }
+
     /* Print final accumulative counts */
     //printf("\n==== ACCUMULATIVE MEMORY OPERATION COUNTS ====\n");
     //printf("Total Loads:  %lu\n", global_load_count.load());
@@ -617,6 +630,10 @@ void nvbit_at_ctx_term(CUcontext ctx) {
 	double read_rate   = (elapsed_time_sec > 0.0) ? total_reads / elapsed_time_sec : 0.0;
 	double write_rate  = (elapsed_time_sec > 0.0) ? total_writes / elapsed_time_sec : 0.0;
 
+	/* Calculate WSS in bytes (distinct cache lines * cache line size) */
+	uint64_t wss_cache_lines = ws_stats.distinct;
+	uint64_t wss_bytes = wss_cache_lines * CACHE_LINE_SIZE;
+
 	fprintf(stat_file, "==== GLOBAL MEMORY ACCESS SUMMARY ====\n");
 	fprintf(stat_file, "Execution Time (sec):        %.6f\n", elapsed_time_sec);
 	fprintf(stat_file, "Total Memory Accesses:       %lu\n", total_accesses);
@@ -626,9 +643,19 @@ void nvbit_at_ctx_term(CUcontext ctx) {
 	fprintf(stat_file, "Write Ratio:                 %.6f\n", write_ratio);
 	fprintf(stat_file, "Read Rate (ops/sec):         %.2f\n", read_rate);
 	fprintf(stat_file, "Write Rate (ops/sec):        %.2f\n", write_rate);
-	fprintf(stat_file, "Working Set Size:            %lu\n", global_working_set.load());
+	fprintf(stat_file, "Working Set Size (lines):    %lu\n", wss_cache_lines);
+	fprintf(stat_file, "Working Set Size (bytes):    %lu\n", wss_bytes);
+	fprintf(stat_file, "Cache Line Size (bytes):     %d\n", CACHE_LINE_SIZE);
 	fprintf(stat_file, "Access Word Size (bytes):    %d\n", access_word_size);
+	fprintf(stat_file, "Total Address Events:        %lu\n", ws_stats.total);
+	fprintf(stat_file, "Single-Access Lines:         %lu\n", ws_stats.singles);
+	fclose(stat_file);
+    }
 
+    /* Destroy working set context */
+    if (global_ws_ctx) {
+        ws_destroy(global_ws_ctx);
+        global_ws_ctx = NULL;
     }
 
 }

@@ -29,10 +29,13 @@ class NVBitProfilers(FrontendInterface):
         """
         if not os.path.isfile(self.lib_path):
             raise FileNotFoundError(f"NVBit shared object not found at {self.lib_path}")
-        
+
+        if not self.executable_cmd.strip():
+            raise ValueError("No executable specified. Use --executable <path>")
+
         executable = self.executable_cmd.split()[0]
         if not os.path.isfile(executable) or not os.access(executable, os.X_OK):
-            raise FileNotFoundError(f"'{self.executable_cmd}' is not valid or not executable.")
+            raise FileNotFoundError(f"'{executable}' is not valid or not executable.")
     
     def set_ld_preload(self):
         """
@@ -93,15 +96,17 @@ class NVBitProfilers(FrontendInterface):
                         report_data["total_reads"] = int(match.group(1))
                     elif match := re.match(r"Global Store Count:\s+(\d+)", line):
                         report_data["total_writes"] = int(match.group(1))
-                    elif match := re.match(r"Read Rate \(ops/sec\):\s+([\d\.]+)", line):    
-                        report_data["read_freq"] = float(match.group(1))
-                    elif match := re.match(r"Write Rate \(ops/sec\):\s+([\d\.]+)", line):
-                        report_data["write_freq"] = float(match.group(1))
-                    elif match := re.match(r"Working Set Size:\s+(\d+)", line):
+                    elif match := re.match(r"Execution Time \(sec\):\s+([\d\.]+)", line):
+                        report_data["execution_time"] = float(match.group(1))
+                    elif match := re.match(r"Working Set Size \(bytes\):\s+(\d+)", line):
                         report_data["workingset_size"] = int(match.group(1))
                     elif match := re.match(r"Access Word Size .*:\s+(\d+)", line):
                         report_data["read_size"] = int(match.group(1))
                         report_data["write_size"] = int(match.group(1))
+
+            # Set read/write freq to null
+            report_data["read_freq"] = None
+            report_data["write_freq"] = None
 
             self.metrics = NVBitConfig.populating(report_data)
             print("NVBit metrics successfully loaded.")

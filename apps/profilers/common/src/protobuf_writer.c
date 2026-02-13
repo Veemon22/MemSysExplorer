@@ -256,7 +256,7 @@ pb_timeseries_writer_t* pb_timeseries_writer_create(
 }
 
 void pb_timeseries_write_sample(pb_timeseries_writer_t *writer,
-                                uint64_t window_number, uint64_t thread_id,
+                                uint64_t window_number, uint32_t thread_id,
                                 uint64_t read_count, uint64_t write_count,
                                 uint64_t total_refs,
                                 uint64_t wss_exact, double wss_approx,
