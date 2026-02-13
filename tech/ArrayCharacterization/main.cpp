@@ -272,7 +272,7 @@ int main(int argc, char *argv[])
 			temp << "_VOL";
 		else
 			temp << "_CUR";
-		temp << ".csv";
+		temp << ".yaml";
 		outputFileName = temp.str();
 		outputFile.open(outputFileName.c_str(), ofstream::app);
 	}
@@ -523,7 +523,10 @@ int main(int argc, char *argv[])
 				}
 
 		for (int i = 0; i < (int)full_exploration; i++) {
-			bestDataResults[i].printAsCacheToCsvFile(bestTagResults[i], inputParameter->cacheAccessMode, outputFile);
+    		if (inputParameter->designTarget == cache)
+        		bestDataResults[i].printAsCacheToYamlFile(bestTagResults[i], inputParameter->cacheAccessMode, outputFile);
+    		else
+        		bestDataResults[i].printToYamlFile(outputFile);
 		}
 		cout << "Pruning done" << endl;
 		for (int i = 0; i < (int)full_exploration; i++) {
@@ -575,14 +578,34 @@ int main(int argc, char *argv[])
 
 	if (inputParameter->optimizationTarget != full_exploration) {
 		if (numSolution > 0) {
+			// Print to console (for user to see)
 			if (inputParameter->designTarget == cache)
 				bestDataResults[inputParameter->optimizationTarget].printAsCache(bestTagResults[inputParameter->optimizationTarget], inputParameter->cacheAccessMode);
 			else
 				bestDataResults[inputParameter->optimizationTarget].print();
+			
+			// NEW: Also write to YAML file (for pipeline to parse)
+			string outputDirectory = inputParameter->outputDirectory;
+			stringstream temp;
+			temp << outputDirectory << inputParameter->outputFilePrefix << ".yaml";
+			string yamlFileName = temp.str();
+			ofstream yamlFile;
+			yamlFile.open(yamlFileName.c_str());
+			if (yamlFile.is_open()) {
+				if (inputParameter->designTarget == cache)
+					bestDataResults[inputParameter->optimizationTarget].printAsCacheToYamlFile(
+						bestTagResults[inputParameter->optimizationTarget], 
+						inputParameter->cacheAccessMode, 
+						yamlFile);
+				else
+					bestDataResults[inputParameter->optimizationTarget].printToYamlFile(yamlFile);
+				yamlFile.close();
+				cout << "Results written to " << yamlFileName << endl;
+			}
 		} else {
 			cout << "No valid solutions." << endl;
 		}
-		cout << endl << "Finished!" << endl;
+    cout << endl << "Finished!" << endl;
 	} else {
 		cout << endl << outputFileName << " generated successfully!" << endl;
 		if (inputParameter->isPruningEnabled) {

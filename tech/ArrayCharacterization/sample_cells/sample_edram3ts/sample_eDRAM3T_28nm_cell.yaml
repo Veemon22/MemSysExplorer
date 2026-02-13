@@ -1,0 +1,22 @@
+# Cell Calibrated from:
+# Narinx, Jonathan, et al.
+# "A 24 kb single-well mixed 3T gain-cell eDRAM with body-bias in 28 nm FD-SOI for refresh-free DSP applications."
+# 2019 IEEE Asian Solid-State Circuits Conference (A-SSCC). IEEE, 2019.
+
+MemCellType: eDRAM3T
+
+CellArea_F2: 204.08
+CellAspectRatio: 1.62
+
+ReadMode: voltage
+
+AccessType: CMOS
+AccessCMOSWidth_F: 1.31
+AccessCMOSWidthR_F: 1.31
+
+DRAMCellCapacitance_F: 3e-15
+
+MinSenseVoltage_mV: 10
+MaxStorageNodeDrop_V: 0.2
+
+RetentionTime_us: 28

@@ -56,7 +56,6 @@ void Technology::Initialize(int _featureSizeInNano, DeviceRoadmap _deviceRoadmap
 	// based on neurosim
 	double caplist [7] = {103.816,97.549,100.497,81.859,72.572, 79.74, 66.94}; // 69.369
 	double currentlist [7] = {595.045, 599.237, 562.048, 578.494, 641.463, 526.868, 460.979}; //  556.448
-	double currentlist_off [7] = {0.0001,0.000127, 0.000147, 0.000138, 0.000158, 0.0000733, 0.000169}; //0.000569
 	double eff_res_mul [7] = {2.09, 2.09, 2.05, 2.10, 2.14, 1.98, 2.05};
 	double gm [7] = {1415.34, 1803.50, 1785.37, 1820.90, 2018.04, 1968.85, 2401.75};
 	double vth_list [7] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1}; // dummy values, since we don't need them
@@ -627,7 +626,7 @@ void Technology::Initialize(int _featureSizeInNano, DeviceRoadmap _deviceRoadmap
 		} else if (_deviceRoadmap == IGZO) {
 			/* IGZO TFT - virtual source model derived */
 			vdd = 1.4;
-			vpp = 2.0;
+			vpp = 1.4;
 			vth = 0.667;
 			phyGateLength = 0.044e-6;
 			capIdealGate = 8.93e-16;
@@ -804,7 +803,7 @@ void Technology::Initialize(int _featureSizeInNano, DeviceRoadmap _deviceRoadmap
 		} else if (_deviceRoadmap == IGZO) {
 			/* IGZO TFT - virtual source model derived */
 			vdd = 1.4;
-			vpp = 2.0;
+			vpp = 1.4;
 			vth = 0.667;
 			phyGateLength = 0.044e-6;
 			capIdealGate = 8.93e-16;
