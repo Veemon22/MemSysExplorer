@@ -1,0 +1,9 @@
+# System config is configurations for both tech and apps 
+DesignTarget: cache
+
+Capacity: 
+  Value: 128
+  Unit: KB
+WordWidth: 128 # bits
+
+OptimizationTarget: WriteEDP
