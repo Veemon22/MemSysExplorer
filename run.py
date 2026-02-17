@@ -150,7 +150,7 @@ def main():
         if apps_cfg['profiler'] == "sniper":
             apps_cfg['executable'] = os.path.join(original_dir, apps_cfg['executable'])
             apps_cfg['config'] = os.path.join(original_dir, apps_cfg['config'])
-        if apps_cfg['profiler'] == "perf":
+        if apps_cfg['profiler'] == "perf" or apps_cfg['profiler'] == 'dynamorio':
             apps_cfg['executable'] = os.path.join(original_dir, apps_cfg['executable'])
 
         print(apps_cfg)
@@ -160,7 +160,7 @@ def main():
         os.chdir("apps_output")
     
         if apps_cfg['profiler'] == "dynamorio":
-            apps_out = run_drio(apps_cfg['executable'])
+            apps_out = run_drio(apps_cfg['executable'], original_dir)
         elif apps_cfg['profiler'] == "sniper":
             apps_out = run_sniper(apps_cfg['level'], apps_cfg['executable'], apps_cfg['config'], original_dir)
         else: 

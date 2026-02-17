@@ -68,5 +68,47 @@ def evaluate(DesignTarget, apps_result, tech_result):
             "total_write_power_mW": writepower,
             "total_power_mW": total_power
         }
+    elif DesignTarget == "RAM":
+        # Extract benchmark data (DynamoRIO output)
+        writes = apps_result.get('total_writes', 0)
+        reads = apps_result.get('total_reads', 0)
+        time = apps_result.get('execution_time', 0) * 1000 # (scale us to ns)
+
+        # Extract tech data
+        readlatency = tech_result.get('read_latency', 0) # ns
+        writelatency = tech_result.get('write_latency', 0)
+
+        writeenergy = tech_result.get('write_dynamic_energy', 0)  # (nJ per access)
+        readenergy = tech_result.get('read_dynamic_energy', 0)
+        
+        leakagepower = tech_result.get('leakage_power', 0)  # (mW)
+
+        # latency calculations (ms)
+        readlatency_total = reads * readlatency * 10.e-6
+        writelatency_total = writes * writelatency * 10.e-6
+        total_latency = readlatency_total + writelatency_total
+
+        # energy calculations (mJ)
+        readenergy_total = reads * readenergy * 10.e-6
+        writeenergy_total = writes * writeenergy * 10.e-6
+        total_energy = readenergy_total + writeenergy_total
+
+        # power calculations (mW)
+        readpower = readenergy_total / time if time else 0
+        writepower = writeenergy_total / time if time else 0
+        total_power = leakagepower + readpower + writepower
+        
+        return {
+            "total_read_latency_ms": readlatency_total,
+            "total_write_latency_ms": writelatency_total,
+            "total_latency_ms": total_latency,
+            "total_read_energy_mJ": readenergy_total,
+            "total_write_energy_mJ": writeenergy_total,
+            "total_energy_mJ": total_energy,
+            "total_read_power_mW": readpower,
+            "total_write_power_mW": writepower,
+            "total_power_mW": total_power
+            }
+
     else:
         return None

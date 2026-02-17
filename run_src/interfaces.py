@@ -37,18 +37,33 @@ def run_array_characterization(tech_yaml_path, Tech_Dir):
     return tech_result
 
 # run DynamoRIO
-def run_drio(executable):
+def run_drio(executable, original_dir):
 
+    apps_dir = os.path.join(original_dir, "apps")
+    built_json_path = os.path.join(apps_dir, "built_profilers.json")
+    if not os.path.exists(built_json_path):
+        print("Built profilers JSON not found. Running proper processes now")
+        subprocess.run(["source", "setup/setup.sh", "dynamorio"], cwd=apps_dir, shell=True)
+        subprocess.run(["make", "dynamorio"], cwd=apps_dir)
+
+    with open(built_json_path, 'r') as f:
+        built_profilers = json.load(f)
+        if built_profilers.get("dynamorio") != True:
+            print("DynamoRIO profiler not built. Running proper processes now")
+            subprocess.run(["source", "setup/setup.sh", "1"], cwd=apps_dir, shell=True)
+            subprocess.run(["make", "dynamorio"], cwd=apps_dir)
+    
     print("\nRunning apps profiling interface..")
     try:
-        apps_out = subprocess.run(["python3", "apps/main.py",
+        apps_out = subprocess.run(["python3", os.path.join(apps_dir, "main.py"),
                                 "--profiler", "dynamorio",
                                 "--action", "both",
+                                "--config", os.path.join(apps_dir, "config/memcount_config.txt"),
                                 "--executable", executable],
                                 capture_output=True, text=True, check=True)
     except subprocess.CalledProcessError as e:
         print(e.stderr)
-    # print(apps_out.stdout)
+    print(apps_out.stdout)
     return apps_out
 
 def run_perf(level, arch, executable, original_dir):
