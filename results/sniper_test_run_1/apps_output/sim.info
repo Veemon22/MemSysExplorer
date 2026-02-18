@@ -1,0 +1,55 @@
+{'cmdline': ['/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/sniper/snipersim/run-sniper',
+             '-c',
+             '/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/configs/sniper_run_config/skylake.cfg',
+             '--',
+             '/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/configs/sniper_run_config/test_sniper'],
+ 'git_revision': '090ac23cf7eed63a684093c1c252bf0efe5f320a',
+ 'host': 'veemon22-HP-255-15-6-inch-G10-Notebook-PC',
+ 'pin_version': 'unknown',
+ 'rusage': (7.351977,
+            0.22806099999999999,
+            226788,
+            0,
+            0,
+            0,
+            44045,
+            0,
+            0,
+            0,
+            184,
+            0,
+            0,
+            0,
+            10440,
+            223),
+ 'snipercmd': ['bash',
+               '-c',
+               '/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/sniper/snipersim/lib/sniper '
+               '-c '
+               '/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/sniper/snipersim/config/base.cfg '
+               '--general/total_cores=1 '
+               '--general/output_dir=/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/results/sniper_test_run_1/apps_output '
+               '--config=/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/configs/sniper_run_config/skylake.cfg '
+               '-g --traceinput/stop_with_first_app=true -g '
+               '--traceinput/restart_apps=false -g '
+               '--traceinput/stop_with_first_app=false -g '
+               '--traceinput/enabled=true -g '
+               '--traceinput/emulate_syscalls=true -g --traceinput/num_apps=1 '
+               '-g --traceinput/trace_prefix=/tmp/tmpq0yfegp9/run_benchmarks'],
+ 't_elapsed': 11.894035577774048,
+ 't_start': 1771378413.3804853,
+ 'tracecmds': [['/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/sniper/snipersim/record-trace',
+                '-o',
+                '/tmp/tmpq0yfegp9/run_benchmarks',
+                '-e',
+                '1',
+                '-s',
+                '0',
+                '-r',
+                '1',
+                '--follow',
+                '--routine-tracing',
+                '--',
+                '/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/configs/sniper_run_config/test_sniper']],
+ 'user': 'veemon22',
+ 'vmem': 1222725632}

@@ -1,0 +1,551 @@
+{
+  "gpu_name": "Error: [Errno 2] No such file or directory: 'nvidia-smi'",
+  "driver_version": "Error: [Errno 2] No such file or directory: 'nvidia-smi'",
+  "gpu_memory_MB": "Error: [Errno 2] No such file or directory: 'nvidia-smi'",
+  "cpu_info": {
+    "Architecture": "x86_64",
+    "CPU op-mode(s)": "32-bit, 64-bit",
+    "Address sizes": "48 bits physical, 48 bits virtual",
+    "Byte Order": "Little Endian",
+    "CPU(s)": "12",
+    "On-line CPU(s) list": "0-11",
+    "Vendor ID": "AuthenticAMD",
+    "Model name": "AMD Ryzen 5 7530U with Radeon Graphics",
+    "CPU family": "25",
+    "Model": "80",
+    "Thread(s) per core": "2",
+    "Core(s) per socket": "6",
+    "Socket(s)": "1",
+    "Stepping": "0",
+    "CPU(s) scaling MHz": "71%",
+    "CPU max MHz": "4546.0000",
+    "CPU min MHz": "400.0000",
+    "BogoMIPS": "3992.07",
+    "Flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate ssbd mba ibrs ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local user_shstk clzero irperf xsaveerptr rdpru wbnoinvd cppc arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif v_spec_ctrl umip pku ospke vaes vpclmulqdq rdpid overflow_recov succor smca fsrm debug_swap ibpb_exit_to_user",
+    "Virtualization": "AMD-V",
+    "L1d cache": "192 KiB (6 instances)",
+    "L1i cache": "192 KiB (6 instances)",
+    "L2 cache": "3 MiB (6 instances)",
+    "L3 cache": "16 MiB (1 instance)",
+    "NUMA node(s)": "1",
+    "NUMA node0 CPU(s)": "0-11",
+    "Vulnerability Gather data sampling": "Not affected",
+    "Vulnerability Indirect target selection": "Not affected",
+    "Vulnerability Itlb multihit": "Not affected",
+    "Vulnerability L1tf": "Not affected",
+    "Vulnerability Mds": "Not affected",
+    "Vulnerability Meltdown": "Not affected",
+    "Vulnerability Mmio stale data": "Not affected",
+    "Vulnerability Reg file data sampling": "Not affected",
+    "Vulnerability Retbleed": "Not affected",
+    "Vulnerability Spec rstack overflow": "Mitigation; Safe RET",
+    "Vulnerability Spec store bypass": "Mitigation; Speculative Store Bypass disabled via prctl",
+    "Vulnerability Spectre v1": "Mitigation; usercopy/swapgs barriers and __user pointer sanitization",
+    "Vulnerability Spectre v2": "Mitigation; Retpolines; IBPB conditional; IBRS_FW; STIBP always-on; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected",
+    "Vulnerability Srbds": "Not affected",
+    "Vulnerability Tsa": "Vulnerable: Clear CPU buffers attempted, no microcode",
+    "Vulnerability Tsx async abort": "Not affected",
+    "Vulnerability Vmscape": "Mitigation; IBPB before exit to userspace"
+  },
+  "cpu_cache": {
+    "L1d": "32K",
+    "L1i": "32K",
+    "L2": "512K",
+    "L3": "16384K"
+  },
+  "dram_size_MB": 31429,
+  "software_info": {
+    "OS": "Linux 6.8.0-100-generic (#100-Ubuntu SMP PREEMPT_DYNAMIC Tue Jan 13 16:40:06 UTC 2026)",
+    "Kernel": "6.8.0-100-generic",
+    "aocc_version": "Not Installed",
+    "gcc_version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+    "clang_version": "Not Installed",
+    "BIOS": "Unavailable",
+    "FileSystem": "ext4",
+    "PowerPolicy": "powersave"
+  },
+  "environment_info": {
+    "hostname": "veemon22-HP-255-15-6-inch-G10-Notebook-PC",
+    "os_name": "Linux",
+    "os_version": "6.8.0-100-generic",
+    "architecture": "x86_64",
+    "working_directory": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/results/drio_test_run_new_1/apps_output",
+    "process_id": 37322,
+    "timestamp_ns": 1771375679549993284,
+    "environment_variables": {
+      "SHELL": "/bin/bash",
+      "SESSION_MANAGER": "local/veemon22-HP-255-15-6-inch-G10-Notebook-PC:@/tmp/.ICE-unix/1383,unix/veemon22-HP-255-15-6-inch-G10-Notebook-PC:/tmp/.ICE-unix/1383",
+      "QT_ACCESSIBILITY": "1",
+      "COLORTERM": "truecolor",
+      "XDG_CONFIG_DIRS": "/etc/xdg/xdg-cinnamon:/etc/xdg",
+      "VSCODE_DEBUGPY_ADAPTER_ENDPOINTS": "/home/veemon22/.vscode/extensions/ms-python.debugpy-2025.18.0-linux-x64/.noConfigDebugAdapterEndpoints/endpoint-2c5770c742691b7b.txt",
+      "XDG_SESSION_PATH": "/org/freedesktop/DisplayManager/Session0",
+      "TERM_PROGRAM_VERSION": "1.109.4",
+      "GNOME_DESKTOP_SESSION_ID": "this-is-deprecated",
+      "GTK_IM_MODULE": "ibus",
+      "QT_IM_MODULES": "wayland;ibus",
+      "LANGUAGE": "en_US",
+      "SSH_AUTH_SOCK": "/run/user/1000/keyring/ssh",
+      "CINNAMON_VERSION": "6.6.7",
+      "PYDEVD_DISABLE_FILE_VALIDATION": "1",
+      "XMODIFIERS": "@im=ibus",
+      "DESKTOP_SESSION": "cinnamon",
+      "GTK_MODULES": "gail:atk-bridge",
+      "XDG_SEAT": "seat0",
+      "PWD": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer",
+      "XDG_SESSION_DESKTOP": "cinnamon",
+      "LOGNAME": "veemon22",
+      "XDG_SESSION_TYPE": "x11",
+      "GPG_AGENT_INFO": "/run/user/1000/gnupg/S.gpg-agent:0:1",
+      "BUNDLED_DEBUGPY_PATH": "/home/veemon22/.vscode/extensions/ms-python.debugpy-2025.18.0-linux-x64/bundled/libs/debugpy",
+      "XAUTHORITY": "/home/veemon22/.Xauthority",
+      "VSCODE_GIT_ASKPASS_NODE": "/usr/share/code/code",
+      "XDG_GREETER_DATA_DIR": "/var/lib/lightdm-data/veemon22",
+      "GJS_DEBUG_TOPICS": "JS ERROR;JS LOG",
+      "GDM_LANG": "en_US",
+      "HOME": "/home/veemon22",
+      "LANG": "en_US.UTF-8",
+      "LS_COLORS": "rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=00:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.avif=01;35:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:*~=00;90:*#=00;90:*.bak=00;90:*.crdownload=00;90:*.dpkg-dist=00;90:*.dpkg-new=00;90:*.dpkg-old=00;90:*.dpkg-tmp=00;90:*.old=00;90:*.orig=00;90:*.part=00;90:*.rej=00;90:*.rpmnew=00;90:*.rpmorig=00;90:*.rpmsave=00;90:*.swp=00;90:*.tmp=00;90:*.ucf-dist=00;90:*.ucf-new=00;90:*.ucf-old=00;90:",
+      "XDG_CURRENT_DESKTOP": "X-Cinnamon",
+      "VIRTUAL_ENV": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/.venv",
+      "PYTHONSTARTUP": "/home/veemon22/.config/Code/User/workspaceStorage/ee31b04142c2064352e37c552096c017/ms-python.python/pythonrc.py",
+      "GIT_ASKPASS": "/usr/share/code/resources/app/extensions/git/dist/askpass.sh",
+      "XDG_SEAT_PATH": "/org/freedesktop/DisplayManager/Seat0",
+      "CHROME_DESKTOP": "code.desktop",
+      "GJS_DEBUG_OUTPUT": "stderr",
+      "VSCODE_PYTHON_AUTOACTIVATE_GUARD": "1",
+      "LESSCLOSE": "/usr/bin/lesspipe %s %s",
+      "XDG_SESSION_CLASS": "user",
+      "TERM": "xterm-256color",
+      "PYTHON_BASIC_REPL": "1",
+      "LESSOPEN": "| /usr/bin/lesspipe %s",
+      "USER": "veemon22",
+      "VSCODE_GIT_IPC_HANDLE": "/run/user/1000/vscode-git-cbf3d95bf6.sock",
+      "DISPLAY": ":0",
+      "SHLVL": "1",
+      "QT_IM_MODULE": "ibus",
+      "XDG_VTNR": "7",
+      "XDG_SESSION_ID": "c2",
+      "VIRTUAL_ENV_PROMPT": "(.venv) ",
+      "FC_FONTATIONS": "1",
+      "XDG_RUNTIME_DIR": "/run/user/1000",
+      "PS1": "\\[\u001b]633;A\u0007\\](.venv) \\[\u001b]633;A\u0007\\]\\[\\e]0;\\u@\\h: \\w\\a\\]${debian_chroot:+($debian_chroot)}\\[\\033[01;32m\\]\\u@\\h\\[\\033[00m\\]:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ \\[\u001b]633;B\u0007\\]\\[\u001b]633;B\u0007\\]",
+      "VSCODE_GIT_ASKPASS_MAIN": "/usr/share/code/resources/app/extensions/git/dist/askpass-main.js",
+      "GTK3_MODULES": "xapp-gtk3-module",
+      "XDG_DATA_DIRS": "/usr/share/cinnamon:/home/veemon22/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share",
+      "GDK_BACKEND": "x11",
+      "PATH": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/.venv/bin:/home/veemon22/.config/Code/User/globalStorage/github.copilot-chat/debugCommand:/home/veemon22/.config/Code/User/globalStorage/github.copilot-chat/copilotCli:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/veemon22/.vscode/extensions/ms-python.debugpy-2025.18.0-linux-x64/bundled/scripts/noConfigScripts",
+      "GDMSESSION": "cinnamon",
+      "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+      "GIO_LAUNCHED_DESKTOP_FILE_PID": "20370",
+      "GIO_LAUNCHED_DESKTOP_FILE": "/usr/share/applications/code.desktop",
+      "TERM_PROGRAM": "vscode",
+      "OLDPWD": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/tech",
+      "_": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/.venv/bin/python3"
+    }
+  },
+  "build_metadata": {
+    "profiler_name": "dynamorio",
+    "profiler_path": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/dynamorio",
+    "makefiles": {
+      "main": {
+        "makefile_path": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/dynamorio/Makefile",
+        "variables": {
+          "DYNAMORIO_VERSION": {
+            "value": "11.3.0",
+            "operator": "?="
+          },
+          "DYNAMORIO_REPO": {
+            "value": "https://github.com/DynamoRIO/dynamorio.git",
+            "operator": "="
+          },
+          "INSTALL_DIR": {
+            "value": "$(shell readlink -f \"$(CURDIR)/dynamorio_install\")",
+            "operator": "?="
+          },
+          "DYNAMORIO_HOME": {
+            "value": "$(INSTALL_DIR)/DynamoRIO-${DYNAMORIO_VERSION}-1",
+            "operator": "?="
+          },
+          "DYNAMORIO_BUILD": {
+            "value": "$(DYNAMORIO_HOME)/build",
+            "operator": "="
+          },
+          "DYNAMORIO_PATCH": {
+            "value": "$(PATCH_DIR)/dynamorio.patch",
+            "operator": "="
+          },
+          "cd $(DYNAMORIO_BUILD) && cmake -DBUILD_DOCS": {
+            "value": "OFF ..",
+            "operator": "="
+          },
+          "$(eval APPS_HOME": {
+            "value": "$(shell cd ../../ && pwd))",
+            "operator": ":="
+          },
+          "$(eval THIRD_PARTY_DIR": {
+            "value": "$(APPS_HOME)/third_party)",
+            "operator": ":="
+          },
+          "$(eval PROTOBUF_PREFIX": {
+            "value": "$(THIRD_PARTY_DIR)/protobuf)",
+            "operator": ":="
+          },
+          "$(eval PROTOBUF_C_PREFIX": {
+            "value": "$(THIRD_PARTY_DIR)/protobuf-c)",
+            "operator": ":="
+          },
+          "cd $(CURDIR)/build &&  export DYNAMORIO_HOME": {
+            "value": "$(DYNAMORIO_BUILD)/cmake &&  export PATH=$(PROTOBUF_C_PREFIX)/bin:$(PROTOBUF_PREFIX)/bin:$$PATH &&  export LD_LIBRARY_PATH=$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LD_LIBRARY_PATH &&  export LIBRARY_PATH=$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LIBRARY_PATH &&  export PKG_CONFIG_PATH=$(PROTOBUF_C_PREFIX)/lib/pkgconfig:$(PROTOBUF_PREFIX)/lib/pkgconfig:$$PKG_CONFIG_PATH &&  export CMAKE_PREFIX_PATH=$(PROTOBUF_C_PREFIX):$(PROTOBUF_PREFIX):$(DYNAMORIO_BUILD)/cmake:$$CMAKE_PREFIX_PATH &&  sh build.sh",
+            "operator": "="
+          },
+          "export DYNAMORIO_HOME": {
+            "value": "$(DYNAMORIO_BUILD)/cmake &&  export PATH=$(PROTOBUF_C_PREFIX)/bin:$(PROTOBUF_PREFIX)/bin:$$PATH &&  export LD_LIBRARY_PATH=$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LD_LIBRARY_PATH &&  export LIBRARY_PATH=$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LIBRARY_PATH &&  export PKG_CONFIG_PATH=$(PROTOBUF_C_PREFIX)/lib/pkgconfig:$(PROTOBUF_PREFIX)/lib/pkgconfig:$$PKG_CONFIG_PATH &&  export CMAKE_PREFIX_PATH=$(PROTOBUF_C_PREFIX):$(PROTOBUF_PREFIX):$(DYNAMORIO_BUILD)/cmake:$$CMAKE_PREFIX_PATH &&  sh build.sh",
+            "operator": "="
+          },
+          "export PATH": {
+            "value": "$(PROTOBUF_C_PREFIX)/bin:$(PROTOBUF_PREFIX)/bin:$$PATH &&  export LD_LIBRARY_PATH=$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LD_LIBRARY_PATH &&  export LIBRARY_PATH=$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LIBRARY_PATH &&  export PKG_CONFIG_PATH=$(PROTOBUF_C_PREFIX)/lib/pkgconfig:$(PROTOBUF_PREFIX)/lib/pkgconfig:$$PKG_CONFIG_PATH &&  export CMAKE_PREFIX_PATH=$(PROTOBUF_C_PREFIX):$(PROTOBUF_PREFIX):$(DYNAMORIO_BUILD)/cmake:$$CMAKE_PREFIX_PATH &&  sh build.sh",
+            "operator": "="
+          },
+          "export LD_LIBRARY_PATH": {
+            "value": "$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LD_LIBRARY_PATH &&  export LIBRARY_PATH=$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LIBRARY_PATH &&  export PKG_CONFIG_PATH=$(PROTOBUF_C_PREFIX)/lib/pkgconfig:$(PROTOBUF_PREFIX)/lib/pkgconfig:$$PKG_CONFIG_PATH &&  export CMAKE_PREFIX_PATH=$(PROTOBUF_C_PREFIX):$(PROTOBUF_PREFIX):$(DYNAMORIO_BUILD)/cmake:$$CMAKE_PREFIX_PATH &&  sh build.sh",
+            "operator": "="
+          },
+          "export LIBRARY_PATH": {
+            "value": "$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LIBRARY_PATH &&  export PKG_CONFIG_PATH=$(PROTOBUF_C_PREFIX)/lib/pkgconfig:$(PROTOBUF_PREFIX)/lib/pkgconfig:$$PKG_CONFIG_PATH &&  export CMAKE_PREFIX_PATH=$(PROTOBUF_C_PREFIX):$(PROTOBUF_PREFIX):$(DYNAMORIO_BUILD)/cmake:$$CMAKE_PREFIX_PATH &&  sh build.sh",
+            "operator": "="
+          },
+          "export PKG_CONFIG_PATH": {
+            "value": "$(PROTOBUF_C_PREFIX)/lib/pkgconfig:$(PROTOBUF_PREFIX)/lib/pkgconfig:$$PKG_CONFIG_PATH &&  export CMAKE_PREFIX_PATH=$(PROTOBUF_C_PREFIX):$(PROTOBUF_PREFIX):$(DYNAMORIO_BUILD)/cmake:$$CMAKE_PREFIX_PATH &&  sh build.sh",
+            "operator": "="
+          },
+          "export CMAKE_PREFIX_PATH": {
+            "value": "$(PROTOBUF_C_PREFIX):$(PROTOBUF_PREFIX):$(DYNAMORIO_BUILD)/cmake:$$CMAKE_PREFIX_PATH &&  sh build.sh",
+            "operator": "="
+          }
+        },
+        "targets": {
+          ".PHONY": {
+            "dependencies": [
+              "all",
+              "install_dynamorio",
+              "apply_patch",
+              "build_dynamorio",
+              "clean"
+            ],
+            "recipes": []
+          },
+          "all": {
+            "dependencies": [
+              "install_dynamorio",
+              "apply_patch",
+              "build_dynamorio",
+              "build_client"
+            ],
+            "recipes": []
+          },
+          "install_dynamorio": {
+            "dependencies": [],
+            "recipes": []
+          },
+          "apply_patch": {
+            "dependencies": [
+              "install_dynamorio"
+            ],
+            "recipes": []
+          },
+          "@if [ -f \"$(DYNAMORIO_PATCH)\" ]; then  echo \"Applying patch to DynamoRIO...\";  patch -N -r -p1 -d $(DYNAMORIO_HOME) < $(DYNAMORIO_PATCH) || echo \"Warning": {
+            "dependencies": [
+              "Patch",
+              "failed!\";",
+              "else",
+              "echo",
+              "\"No",
+              "patch",
+              "file",
+              "found",
+              "for",
+              "DynamoRIO.\";",
+              "fi"
+            ],
+            "recipes": []
+          },
+          "echo \"Applying patch to DynamoRIO...\";  patch -N -r -p1 -d $(DYNAMORIO_HOME) < $(DYNAMORIO_PATCH) || echo \"Warning": {
+            "dependencies": [
+              "Patch",
+              "failed!\";",
+              "else",
+              "echo",
+              "\"No",
+              "patch",
+              "file",
+              "found",
+              "for",
+              "DynamoRIO.\";",
+              "fi"
+            ],
+            "recipes": []
+          },
+          "patch -N -r -p1 -d $(DYNAMORIO_HOME) < $(DYNAMORIO_PATCH) || echo \"Warning": {
+            "dependencies": [
+              "Patch",
+              "failed!\";",
+              "else",
+              "echo",
+              "\"No",
+              "patch",
+              "file",
+              "found",
+              "for",
+              "DynamoRIO.\";",
+              "fi"
+            ],
+            "recipes": []
+          },
+          "build_dynamorio": {
+            "dependencies": [
+              "apply_patch"
+            ],
+            "recipes": []
+          },
+          "build_client": {
+            "dependencies": [],
+            "recipes": []
+          },
+          "@if [ ! -f \"$(CURDIR)/build/build.sh\" ]; then  echo \"Error": {
+            "dependencies": [
+              "build.sh",
+              "not",
+              "found",
+              "in",
+              "$(CURDIR)/build.",
+              "Ensure",
+              "the",
+              "script",
+              "is",
+              "present.\";",
+              "exit",
+              "1;",
+              "fi"
+            ],
+            "recipes": []
+          },
+          "echo \"Error": {
+            "dependencies": [
+              "build.sh",
+              "not",
+              "found",
+              "in",
+              "$(CURDIR)/build.",
+              "Ensure",
+              "the",
+              "script",
+              "is",
+              "present.\";",
+              "exit",
+              "1;",
+              "fi"
+            ],
+            "recipes": []
+          },
+          "clean": {
+            "dependencies": [],
+            "recipes": []
+          }
+        },
+        "dependencies": {
+          ".PHONY": [
+            "all",
+            "install_dynamorio",
+            "apply_patch",
+            "build_dynamorio",
+            "clean"
+          ],
+          "all": [
+            "install_dynamorio",
+            "apply_patch",
+            "build_dynamorio",
+            "build_client"
+          ],
+          "install_dynamorio": [],
+          "apply_patch": [
+            "install_dynamorio"
+          ],
+          "@if [ -f \"$(DYNAMORIO_PATCH)\" ]; then  echo \"Applying patch to DynamoRIO...\";  patch -N -r -p1 -d $(DYNAMORIO_HOME) < $(DYNAMORIO_PATCH) || echo \"Warning": [
+            "Patch",
+            "failed!\";",
+            "else",
+            "echo",
+            "\"No",
+            "patch",
+            "file",
+            "found",
+            "for",
+            "DynamoRIO.\";",
+            "fi"
+          ],
+          "echo \"Applying patch to DynamoRIO...\";  patch -N -r -p1 -d $(DYNAMORIO_HOME) < $(DYNAMORIO_PATCH) || echo \"Warning": [
+            "Patch",
+            "failed!\";",
+            "else",
+            "echo",
+            "\"No",
+            "patch",
+            "file",
+            "found",
+            "for",
+            "DynamoRIO.\";",
+            "fi"
+          ],
+          "patch -N -r -p1 -d $(DYNAMORIO_HOME) < $(DYNAMORIO_PATCH) || echo \"Warning": [
+            "Patch",
+            "failed!\";",
+            "else",
+            "echo",
+            "\"No",
+            "patch",
+            "file",
+            "found",
+            "for",
+            "DynamoRIO.\";",
+            "fi"
+          ],
+          "build_dynamorio": [
+            "apply_patch"
+          ],
+          "build_client": [],
+          "@if [ ! -f \"$(CURDIR)/build/build.sh\" ]; then  echo \"Error": [
+            "build.sh",
+            "not",
+            "found",
+            "in",
+            "$(CURDIR)/build.",
+            "Ensure",
+            "the",
+            "script",
+            "is",
+            "present.\";",
+            "exit",
+            "1;",
+            "fi"
+          ],
+          "echo \"Error": [
+            "build.sh",
+            "not",
+            "found",
+            "in",
+            "$(CURDIR)/build.",
+            "Ensure",
+            "the",
+            "script",
+            "is",
+            "present.\";",
+            "exit",
+            "1;",
+            "fi"
+          ],
+          "clean": []
+        },
+        "phony_targets": [],
+        "includes": [],
+        "version_info": {
+          "DYNAMORIO_VERSION": "11.3.0"
+        },
+        "compiler_info": {},
+        "paths": {
+          "INSTALL_DIR": "$(shell readlink -f \"$(CURDIR)/dynamorio_install\")",
+          "DYNAMORIO_HOME": "$(INSTALL_DIR)/DynamoRIO-${DYNAMORIO_VERSION}-1",
+          "$(eval APPS_HOME": "$(shell cd ../../ && pwd))",
+          "$(eval THIRD_PARTY_DIR": "$(APPS_HOME)/third_party)",
+          "cd $(CURDIR)/build &&  export DYNAMORIO_HOME": "$(DYNAMORIO_BUILD)/cmake &&  export PATH=$(PROTOBUF_C_PREFIX)/bin:$(PROTOBUF_PREFIX)/bin:$$PATH &&  export LD_LIBRARY_PATH=$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LD_LIBRARY_PATH &&  export LIBRARY_PATH=$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LIBRARY_PATH &&  export PKG_CONFIG_PATH=$(PROTOBUF_C_PREFIX)/lib/pkgconfig:$(PROTOBUF_PREFIX)/lib/pkgconfig:$$PKG_CONFIG_PATH &&  export CMAKE_PREFIX_PATH=$(PROTOBUF_C_PREFIX):$(PROTOBUF_PREFIX):$(DYNAMORIO_BUILD)/cmake:$$CMAKE_PREFIX_PATH &&  sh build.sh",
+          "export DYNAMORIO_HOME": "$(DYNAMORIO_BUILD)/cmake &&  export PATH=$(PROTOBUF_C_PREFIX)/bin:$(PROTOBUF_PREFIX)/bin:$$PATH &&  export LD_LIBRARY_PATH=$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LD_LIBRARY_PATH &&  export LIBRARY_PATH=$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LIBRARY_PATH &&  export PKG_CONFIG_PATH=$(PROTOBUF_C_PREFIX)/lib/pkgconfig:$(PROTOBUF_PREFIX)/lib/pkgconfig:$$PKG_CONFIG_PATH &&  export CMAKE_PREFIX_PATH=$(PROTOBUF_C_PREFIX):$(PROTOBUF_PREFIX):$(DYNAMORIO_BUILD)/cmake:$$CMAKE_PREFIX_PATH &&  sh build.sh",
+          "export PATH": "$(PROTOBUF_C_PREFIX)/bin:$(PROTOBUF_PREFIX)/bin:$$PATH &&  export LD_LIBRARY_PATH=$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LD_LIBRARY_PATH &&  export LIBRARY_PATH=$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LIBRARY_PATH &&  export PKG_CONFIG_PATH=$(PROTOBUF_C_PREFIX)/lib/pkgconfig:$(PROTOBUF_PREFIX)/lib/pkgconfig:$$PKG_CONFIG_PATH &&  export CMAKE_PREFIX_PATH=$(PROTOBUF_C_PREFIX):$(PROTOBUF_PREFIX):$(DYNAMORIO_BUILD)/cmake:$$CMAKE_PREFIX_PATH &&  sh build.sh",
+          "export LD_LIBRARY_PATH": "$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LD_LIBRARY_PATH &&  export LIBRARY_PATH=$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LIBRARY_PATH &&  export PKG_CONFIG_PATH=$(PROTOBUF_C_PREFIX)/lib/pkgconfig:$(PROTOBUF_PREFIX)/lib/pkgconfig:$$PKG_CONFIG_PATH &&  export CMAKE_PREFIX_PATH=$(PROTOBUF_C_PREFIX):$(PROTOBUF_PREFIX):$(DYNAMORIO_BUILD)/cmake:$$CMAKE_PREFIX_PATH &&  sh build.sh",
+          "export LIBRARY_PATH": "$(PROTOBUF_C_PREFIX)/lib:$(PROTOBUF_PREFIX)/lib:$$LIBRARY_PATH &&  export PKG_CONFIG_PATH=$(PROTOBUF_C_PREFIX)/lib/pkgconfig:$(PROTOBUF_PREFIX)/lib/pkgconfig:$$PKG_CONFIG_PATH &&  export CMAKE_PREFIX_PATH=$(PROTOBUF_C_PREFIX):$(PROTOBUF_PREFIX):$(DYNAMORIO_BUILD)/cmake:$$CMAKE_PREFIX_PATH &&  sh build.sh",
+          "export PKG_CONFIG_PATH": "$(PROTOBUF_C_PREFIX)/lib/pkgconfig:$(PROTOBUF_PREFIX)/lib/pkgconfig:$$PKG_CONFIG_PATH &&  export CMAKE_PREFIX_PATH=$(PROTOBUF_C_PREFIX):$(PROTOBUF_PREFIX):$(DYNAMORIO_BUILD)/cmake:$$CMAKE_PREFIX_PATH &&  sh build.sh",
+          "export CMAKE_PREFIX_PATH": "$(PROTOBUF_C_PREFIX):$(PROTOBUF_PREFIX):$(DYNAMORIO_BUILD)/cmake:$$CMAKE_PREFIX_PATH &&  sh build.sh"
+        },
+        "summary": {
+          "total_variables": 18,
+          "total_targets": 12,
+          "phony_targets_count": 0,
+          "includes_count": 0,
+          "has_version_info": true,
+          "has_compiler_info": false,
+          "main_targets": [
+            ".PHONY",
+            "all",
+            "install_dynamorio",
+            "apply_patch",
+            "@if [ -f \"$(DYNAMORIO_PATCH)\" ]; then  echo \"Applying patch to DynamoRIO...\";  patch -N -r -p1 -d $(DYNAMORIO_HOME) < $(DYNAMORIO_PATCH) || echo \"Warning"
+          ]
+        }
+      }
+    },
+    "build_summary": {
+      "total_makefiles": 1,
+      "version_requirements": {
+        "DYNAMORIO_VERSION": "11.3.0"
+      },
+      "compiler_requirements": {},
+      "main_targets": [
+        "echo \"Error",
+        ".PHONY",
+        "install_dynamorio",
+        "build_client",
+        "@if [ ! -f \"$(CURDIR)/build/build.sh\" ]; then  echo \"Error",
+        "@if [ -f \"$(DYNAMORIO_PATCH)\" ]; then  echo \"Applying patch to DynamoRIO...\";  patch -N -r -p1 -d $(DYNAMORIO_HOME) < $(DYNAMORIO_PATCH) || echo \"Warning",
+        "all",
+        "echo \"Applying patch to DynamoRIO...\";  patch -N -r -p1 -d $(DYNAMORIO_HOME) < $(DYNAMORIO_PATCH) || echo \"Warning",
+        "clean",
+        "patch -N -r -p1 -d $(DYNAMORIO_HOME) < $(DYNAMORIO_PATCH) || echo \"Warning",
+        "apply_patch",
+        "build_dynamorio"
+      ],
+      "dependencies": []
+    }
+  },
+  "profiler_flags": {
+    "profiler_name": "dynamorio",
+    "profiler_dir": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/dynamorio",
+    "profiler_file": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/dynamorio/drio_profilers.py",
+    "command_flags": {
+      "regex_flags": [
+        "-c",
+        "-f",
+        "TIMESTAT: Peak_Memory=%MKB Elapsed=%E",
+        "\n        if action == "
+      ],
+      "drio_flags": [
+        "-c",
+        "-config",
+        "--"
+      ]
+    },
+    "base_commands": {
+      "drio": "drrun"
+    },
+    "configuration_options": {
+      "executable_cmd": "executable",
+      "output": "",
+      "action": "action",
+      "config_file": "config",
+      "enable_memory_stats": "enable_memory_stats"
+    },
+    "environment_variables": {},
+    "summary": {
+      "total_flag_groups": 2,
+      "total_flags": 7,
+      "base_commands": [
+        "drrun"
+      ],
+      "environment_variables_count": 0,
+      "configuration_options_count": 5,
+      "flag_groups": [
+        "regex_flags",
+        "drio_flags"
+      ]
+    }
+  },
+  "dynamorio_version": "11.3.0"
+}

@@ -1,0 +1,823 @@
+{
+  "gpu_name": "Error: [Errno 2] No such file or directory: 'nvidia-smi'",
+  "driver_version": "Error: [Errno 2] No such file or directory: 'nvidia-smi'",
+  "gpu_memory_MB": "Error: [Errno 2] No such file or directory: 'nvidia-smi'",
+  "cpu_info": {
+    "Architecture": "x86_64",
+    "CPU op-mode(s)": "32-bit, 64-bit",
+    "Address sizes": "48 bits physical, 48 bits virtual",
+    "Byte Order": "Little Endian",
+    "CPU(s)": "12",
+    "On-line CPU(s) list": "0-11",
+    "Vendor ID": "AuthenticAMD",
+    "Model name": "AMD Ryzen 5 7530U with Radeon Graphics",
+    "CPU family": "25",
+    "Model": "80",
+    "Thread(s) per core": "2",
+    "Core(s) per socket": "6",
+    "Socket(s)": "1",
+    "Stepping": "0",
+    "CPU(s) scaling MHz": "16%",
+    "CPU max MHz": "4546.0000",
+    "CPU min MHz": "400.0000",
+    "BogoMIPS": "3992.07",
+    "Flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate ssbd mba ibrs ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local user_shstk clzero irperf xsaveerptr rdpru wbnoinvd cppc arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif v_spec_ctrl umip pku ospke vaes vpclmulqdq rdpid overflow_recov succor smca fsrm debug_swap ibpb_exit_to_user",
+    "Virtualization": "AMD-V",
+    "L1d cache": "192 KiB (6 instances)",
+    "L1i cache": "192 KiB (6 instances)",
+    "L2 cache": "3 MiB (6 instances)",
+    "L3 cache": "16 MiB (1 instance)",
+    "NUMA node(s)": "1",
+    "NUMA node0 CPU(s)": "0-11",
+    "Vulnerability Gather data sampling": "Not affected",
+    "Vulnerability Indirect target selection": "Not affected",
+    "Vulnerability Itlb multihit": "Not affected",
+    "Vulnerability L1tf": "Not affected",
+    "Vulnerability Mds": "Not affected",
+    "Vulnerability Meltdown": "Not affected",
+    "Vulnerability Mmio stale data": "Not affected",
+    "Vulnerability Reg file data sampling": "Not affected",
+    "Vulnerability Retbleed": "Not affected",
+    "Vulnerability Spec rstack overflow": "Mitigation; Safe RET",
+    "Vulnerability Spec store bypass": "Mitigation; Speculative Store Bypass disabled via prctl",
+    "Vulnerability Spectre v1": "Mitigation; usercopy/swapgs barriers and __user pointer sanitization",
+    "Vulnerability Spectre v2": "Mitigation; Retpolines; IBPB conditional; IBRS_FW; STIBP always-on; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected",
+    "Vulnerability Srbds": "Not affected",
+    "Vulnerability Tsa": "Vulnerable: Clear CPU buffers attempted, no microcode",
+    "Vulnerability Tsx async abort": "Not affected",
+    "Vulnerability Vmscape": "Mitigation; IBPB before exit to userspace"
+  },
+  "cpu_cache": {
+    "L1d": "32K",
+    "L1i": "32K",
+    "L2": "512K",
+    "L3": "16384K"
+  },
+  "dram_size_MB": 31429,
+  "software_info": {
+    "OS": "Linux 6.8.0-100-generic (#100-Ubuntu SMP PREEMPT_DYNAMIC Tue Jan 13 16:40:06 UTC 2026)",
+    "Kernel": "6.8.0-100-generic",
+    "aocc_version": "Not Installed",
+    "gcc_version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+    "clang_version": "Not Installed",
+    "BIOS": "Unavailable",
+    "FileSystem": "ext4",
+    "PowerPolicy": "powersave"
+  },
+  "environment_info": {
+    "hostname": "veemon22-HP-255-15-6-inch-G10-Notebook-PC",
+    "os_name": "Linux",
+    "os_version": "6.8.0-100-generic",
+    "architecture": "x86_64",
+    "working_directory": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/results/sniper_test_run_1/apps_output",
+    "process_id": 50891,
+    "timestamp_ns": 1771378425685094538,
+    "environment_variables": {
+      "SHELL": "/bin/bash",
+      "SESSION_MANAGER": "local/veemon22-HP-255-15-6-inch-G10-Notebook-PC:@/tmp/.ICE-unix/1383,unix/veemon22-HP-255-15-6-inch-G10-Notebook-PC:/tmp/.ICE-unix/1383",
+      "QT_ACCESSIBILITY": "1",
+      "COLORTERM": "truecolor",
+      "XDG_CONFIG_DIRS": "/etc/xdg/xdg-cinnamon:/etc/xdg",
+      "VSCODE_DEBUGPY_ADAPTER_ENDPOINTS": "/home/veemon22/.vscode/extensions/ms-python.debugpy-2025.18.0-linux-x64/.noConfigDebugAdapterEndpoints/endpoint-2c5770c742691b7b.txt",
+      "XDG_SESSION_PATH": "/org/freedesktop/DisplayManager/Session0",
+      "TERM_PROGRAM_VERSION": "1.109.4",
+      "GNOME_DESKTOP_SESSION_ID": "this-is-deprecated",
+      "GTK_IM_MODULE": "ibus",
+      "QT_IM_MODULES": "wayland;ibus",
+      "LANGUAGE": "en_US",
+      "SSH_AUTH_SOCK": "/run/user/1000/keyring/ssh",
+      "CINNAMON_VERSION": "6.6.7",
+      "PYDEVD_DISABLE_FILE_VALIDATION": "1",
+      "XMODIFIERS": "@im=ibus",
+      "DESKTOP_SESSION": "cinnamon",
+      "GTK_MODULES": "gail:atk-bridge",
+      "XDG_SEAT": "seat0",
+      "PWD": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer",
+      "XDG_SESSION_DESKTOP": "cinnamon",
+      "LOGNAME": "veemon22",
+      "XDG_SESSION_TYPE": "x11",
+      "GPG_AGENT_INFO": "/run/user/1000/gnupg/S.gpg-agent:0:1",
+      "BUNDLED_DEBUGPY_PATH": "/home/veemon22/.vscode/extensions/ms-python.debugpy-2025.18.0-linux-x64/bundled/libs/debugpy",
+      "XAUTHORITY": "/home/veemon22/.Xauthority",
+      "VSCODE_GIT_ASKPASS_NODE": "/usr/share/code/code",
+      "XDG_GREETER_DATA_DIR": "/var/lib/lightdm-data/veemon22",
+      "GJS_DEBUG_TOPICS": "JS ERROR;JS LOG",
+      "GDM_LANG": "en_US",
+      "HOME": "/home/veemon22",
+      "LANG": "en_US.UTF-8",
+      "LS_COLORS": "rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=00:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.avif=01;35:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:*~=00;90:*#=00;90:*.bak=00;90:*.crdownload=00;90:*.dpkg-dist=00;90:*.dpkg-new=00;90:*.dpkg-old=00;90:*.dpkg-tmp=00;90:*.old=00;90:*.orig=00;90:*.part=00;90:*.rej=00;90:*.rpmnew=00;90:*.rpmorig=00;90:*.rpmsave=00;90:*.swp=00;90:*.tmp=00;90:*.ucf-dist=00;90:*.ucf-new=00;90:*.ucf-old=00;90:",
+      "XDG_CURRENT_DESKTOP": "X-Cinnamon",
+      "VIRTUAL_ENV": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/.venv",
+      "PYTHONSTARTUP": "/home/veemon22/.config/Code/User/workspaceStorage/ee31b04142c2064352e37c552096c017/ms-python.python/pythonrc.py",
+      "GIT_ASKPASS": "/usr/share/code/resources/app/extensions/git/dist/askpass.sh",
+      "XDG_SEAT_PATH": "/org/freedesktop/DisplayManager/Seat0",
+      "CHROME_DESKTOP": "code.desktop",
+      "GJS_DEBUG_OUTPUT": "stderr",
+      "VSCODE_PYTHON_AUTOACTIVATE_GUARD": "1",
+      "LESSCLOSE": "/usr/bin/lesspipe %s %s",
+      "XDG_SESSION_CLASS": "user",
+      "TERM": "xterm-256color",
+      "PYTHON_BASIC_REPL": "1",
+      "LESSOPEN": "| /usr/bin/lesspipe %s",
+      "USER": "veemon22",
+      "VSCODE_GIT_IPC_HANDLE": "/run/user/1000/vscode-git-cbf3d95bf6.sock",
+      "DISPLAY": ":0",
+      "SHLVL": "1",
+      "QT_IM_MODULE": "ibus",
+      "XDG_VTNR": "7",
+      "XDG_SESSION_ID": "c2",
+      "VIRTUAL_ENV_PROMPT": "(.venv) ",
+      "FC_FONTATIONS": "1",
+      "XDG_RUNTIME_DIR": "/run/user/1000",
+      "PS1": "\\[\u001b]633;A\u0007\\](.venv) \\[\u001b]633;A\u0007\\]\\[\\e]0;\\u@\\h: \\w\\a\\]${debian_chroot:+($debian_chroot)}\\[\\033[01;32m\\]\\u@\\h\\[\\033[00m\\]:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ \\[\u001b]633;B\u0007\\]\\[\u001b]633;B\u0007\\]",
+      "VSCODE_GIT_ASKPASS_MAIN": "/usr/share/code/resources/app/extensions/git/dist/askpass-main.js",
+      "GTK3_MODULES": "xapp-gtk3-module",
+      "XDG_DATA_DIRS": "/usr/share/cinnamon:/home/veemon22/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share",
+      "GDK_BACKEND": "x11",
+      "PATH": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/.venv/bin:/home/veemon22/.config/Code/User/globalStorage/github.copilot-chat/debugCommand:/home/veemon22/.config/Code/User/globalStorage/github.copilot-chat/copilotCli:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/veemon22/.vscode/extensions/ms-python.debugpy-2025.18.0-linux-x64/bundled/scripts/noConfigScripts",
+      "GDMSESSION": "cinnamon",
+      "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+      "GIO_LAUNCHED_DESKTOP_FILE_PID": "40052",
+      "GIO_LAUNCHED_DESKTOP_FILE": "/usr/share/applications/code.desktop",
+      "TERM_PROGRAM": "vscode",
+      "_": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/.venv/bin/python3"
+    }
+  },
+  "build_metadata": {
+    "profiler_name": "sniper",
+    "profiler_path": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/sniper",
+    "makefiles": {
+      "main": {
+        "makefile_path": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/sniper/Makefile",
+        "variables": {
+          "SNIPERSIM_REPO": {
+            "value": "https://github.com/snipersim/snipersim.git",
+            "operator": "="
+          },
+          "SNIPERSIM_COMMIT": {
+            "value": "090ac23cf7eed63a684093c1c252bf0efe5f320a",
+            "operator": "="
+          },
+          "SNIPERSIM_DIR": {
+            "value": "$(CURDIR)/snipersim",
+            "operator": "="
+          },
+          "PIN_URL": {
+            "value": "https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.30-98830-g1d7b601b3-gcc-linux.tar.gz",
+            "operator": "="
+          },
+          "PATCH_DIR": {
+            "value": "$(CURDIR)/../../patches",
+            "operator": "?="
+          },
+          "SNIPERSIM_PATCH": {
+            "value": "$(PATCH_DIR)/tracing_sniper.patch",
+            "operator": "="
+          },
+          "cd $(SNIPERSIM_DIR) && make USE_PIN": {
+            "value": "1 -j$(nproc)",
+            "operator": "="
+          }
+        },
+        "targets": {
+          ".PHONY": {
+            "dependencies": [
+              "all",
+              "install_snipersim",
+              "checkout_version",
+              "build_snipersim",
+              "clean"
+            ],
+            "recipes": []
+          },
+          "all": {
+            "dependencies": [
+              "install_snipersim",
+              "checkout_version",
+              "build_snipersim"
+            ],
+            "recipes": []
+          },
+          "install_snipersim": {
+            "dependencies": [],
+            "recipes": []
+          },
+          "checkout_version": {
+            "dependencies": [
+              "install_snipersim"
+            ],
+            "recipes": []
+          },
+          "build_snipersim": {
+            "dependencies": [
+              "checkout_version"
+            ],
+            "recipes": []
+          },
+          "@if [ -f \"$(SNIPERSIM_PATCH)\" ]; then  echo \"Applying patch to SniperSim...\";  patch -p1 -d $(SNIPERSIM_DIR) < $(SNIPERSIM_PATCH) || echo \"Warning": {
+            "dependencies": [
+              "Patch",
+              "failed!\";",
+              "else",
+              "echo",
+              "\"No",
+              "patch",
+              "file",
+              "found",
+              "for",
+              "SniperSim.\";",
+              "fi"
+            ],
+            "recipes": []
+          },
+          "echo \"Applying patch to SniperSim...\";  patch -p1 -d $(SNIPERSIM_DIR) < $(SNIPERSIM_PATCH) || echo \"Warning": {
+            "dependencies": [
+              "Patch",
+              "failed!\";",
+              "else",
+              "echo",
+              "\"No",
+              "patch",
+              "file",
+              "found",
+              "for",
+              "SniperSim.\";",
+              "fi"
+            ],
+            "recipes": []
+          },
+          "patch -p1 -d $(SNIPERSIM_DIR) < $(SNIPERSIM_PATCH) || echo \"Warning": {
+            "dependencies": [
+              "Patch",
+              "failed!\";",
+              "else",
+              "echo",
+              "\"No",
+              "patch",
+              "file",
+              "found",
+              "for",
+              "SniperSim.\";",
+              "fi"
+            ],
+            "recipes": []
+          },
+          "clean": {
+            "dependencies": [],
+            "recipes": []
+          }
+        },
+        "dependencies": {
+          ".PHONY": [
+            "all",
+            "install_snipersim",
+            "checkout_version",
+            "build_snipersim",
+            "clean"
+          ],
+          "all": [
+            "install_snipersim",
+            "checkout_version",
+            "build_snipersim"
+          ],
+          "install_snipersim": [],
+          "checkout_version": [
+            "install_snipersim"
+          ],
+          "build_snipersim": [
+            "checkout_version"
+          ],
+          "@if [ -f \"$(SNIPERSIM_PATCH)\" ]; then  echo \"Applying patch to SniperSim...\";  patch -p1 -d $(SNIPERSIM_DIR) < $(SNIPERSIM_PATCH) || echo \"Warning": [
+            "Patch",
+            "failed!\";",
+            "else",
+            "echo",
+            "\"No",
+            "patch",
+            "file",
+            "found",
+            "for",
+            "SniperSim.\";",
+            "fi"
+          ],
+          "echo \"Applying patch to SniperSim...\";  patch -p1 -d $(SNIPERSIM_DIR) < $(SNIPERSIM_PATCH) || echo \"Warning": [
+            "Patch",
+            "failed!\";",
+            "else",
+            "echo",
+            "\"No",
+            "patch",
+            "file",
+            "found",
+            "for",
+            "SniperSim.\";",
+            "fi"
+          ],
+          "patch -p1 -d $(SNIPERSIM_DIR) < $(SNIPERSIM_PATCH) || echo \"Warning": [
+            "Patch",
+            "failed!\";",
+            "else",
+            "echo",
+            "\"No",
+            "patch",
+            "file",
+            "found",
+            "for",
+            "SniperSim.\";",
+            "fi"
+          ],
+          "clean": []
+        },
+        "phony_targets": [],
+        "includes": [],
+        "version_info": {},
+        "compiler_info": {},
+        "paths": {
+          "SNIPERSIM_DIR": "$(CURDIR)/snipersim",
+          "PATCH_DIR": "$(CURDIR)/../../patches",
+          "cd $(SNIPERSIM_DIR) && make USE_PIN": "1 -j$(nproc)"
+        },
+        "summary": {
+          "total_variables": 7,
+          "total_targets": 9,
+          "phony_targets_count": 0,
+          "includes_count": 0,
+          "has_version_info": false,
+          "has_compiler_info": false,
+          "main_targets": [
+            ".PHONY",
+            "all",
+            "install_snipersim",
+            "checkout_version",
+            "build_snipersim"
+          ]
+        }
+      }
+    },
+    "build_summary": {
+      "total_makefiles": 1,
+      "version_requirements": {},
+      "compiler_requirements": {},
+      "main_targets": [
+        "echo \"Applying patch to SniperSim...\";  patch -p1 -d $(SNIPERSIM_DIR) < $(SNIPERSIM_PATCH) || echo \"Warning",
+        ".PHONY",
+        "patch -p1 -d $(SNIPERSIM_DIR) < $(SNIPERSIM_PATCH) || echo \"Warning",
+        "clean",
+        "@if [ -f \"$(SNIPERSIM_PATCH)\" ]; then  echo \"Applying patch to SniperSim...\";  patch -p1 -d $(SNIPERSIM_DIR) < $(SNIPERSIM_PATCH) || echo \"Warning",
+        "build_snipersim",
+        "install_snipersim",
+        "all",
+        "checkout_version"
+      ],
+      "dependencies": []
+    }
+  },
+  "profiler_flags": {
+    "profiler_name": "sniper",
+    "profiler_dir": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/sniper",
+    "profiler_file": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/sniper/sniper_profilers.py",
+    "command_flags": {
+      "construct_command": [],
+      "regex_flags": [
+        ")\n\n            # Add roi-script flags\n            command += [",
+        "\n        super().__init__(**kwargs)\n        self.config_path = self.config.get(",
+        ")\n        self.metrics = None\n\n        # ROI/Instruction control options\n        self.roi_mode = self.config.get(",
+        "roi_mode=",
+        "--roi-script",
+        "-s",
+        "\n        command = self.construct_command()\n        try:\n            print(f"
+      ],
+      "sniper_flags": [
+        "-c",
+        "--"
+      ]
+    },
+    "base_commands": {
+      "sniper": "sniper"
+    },
+    "configuration_options": {
+      "executable_cmd": "executable",
+      "config_path": "config",
+      "levels": "level",
+      "roi_mode": "roi_mode",
+      "fastforward": "fastforward",
+      "warmup": "warmup",
+      "detailed": "detailed",
+      "no_cache_warming": "no_cache_warming",
+      "level": "level"
+    },
+    "environment_variables": {},
+    "summary": {
+      "total_flag_groups": 3,
+      "total_flags": 9,
+      "base_commands": [
+        "sniper"
+      ],
+      "environment_variables_count": 0,
+      "configuration_options_count": 9,
+      "flag_groups": [
+        "construct_command",
+        "regex_flags",
+        "sniper_flags"
+      ]
+    }
+  },
+  "sniper_version": "8.2",
+  "sniper_config_path": "./sim.cfg",
+  "simulated_cpu_types": [],
+  "sniper_config_contents": {
+    "bbv": {
+      "sampling": "0"
+    },
+    "caching_protocol": {
+      "type": "\"parametric_dram_directory_msi\"",
+      "variant": "\"mesi\""
+    },
+    "clock_skew_minimization": {
+      "report": "\"false\"",
+      "scheme": "\"barrier\""
+    },
+    "clock_skew_minimization/barrier": {
+      "quantum": "100"
+    },
+    "core": {
+      "spin_loop_detection": "\"false\""
+    },
+    "core/cheetah": {
+      "enabled": "\"false\"",
+      "max_size_bits_global": "36",
+      "max_size_bits_local": "30",
+      "min_size_bits": "10"
+    },
+    "core/hook_periodic_ins": {
+      "ins_global": "1000000",
+      "ins_per_core": "10000"
+    },
+    "core/light_cache": {
+      "num": "0"
+    },
+    "dvfs": {
+      "transition_latency": "2000",
+      "type": "\"simple\""
+    },
+    "dvfs/simple": {
+      "cores_per_socket": "1"
+    },
+    "fault_injection": {
+      "injector": "\"none\"",
+      "type": "\"none\""
+    },
+    "general": {
+      "arch": "\"intel\"",
+      "enable_icache_modeling": "\"false\"",
+      "enable_pinplay": "\"false\"",
+      "enable_signals": "\"false\"",
+      "enable_smc_support": "\"false\"",
+      "enable_syscall_emulation": "\"true\"",
+      "inst_mode_end": "\"fast_forward\"",
+      "inst_mode_init": "\"cache_only\"",
+      "inst_mode_output": "\"true\"",
+      "inst_mode_roi": "\"detailed\"",
+      "issue_memops_at_functional": "\"false\"",
+      "magic": "\"false\"",
+      "mode": "64",
+      "num_host_cores": "0",
+      "output_dir": "\"/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/results/sniper_test_run_1/apps_output\"",
+      "roi_script": "\"false\"",
+      "signals_to_ignore": "13",
+      "suppress_stderr": "\"false\"",
+      "suppress_stdout": "\"false\"",
+      "syntax": "\"intel\"",
+      "total_cores": "8"
+    },
+    "hooks": {
+      "numscripts": "0"
+    },
+    "instruction_tracer": {
+      "type": "\"none\""
+    },
+    "log": {
+      "circular_log": "\"false\"",
+      "disabled_modules": "\"\"",
+      "enabled": "\"false\"",
+      "enabled_modules": "\"\"",
+      "mutex_trace": "\"false\"",
+      "pin_codecache_trace": "\"false\"",
+      "stack_trace": "\"false\""
+    },
+    "loop_tracer": {
+      "iter_count": "36",
+      "iter_start": "0"
+    },
+    "network": {
+      "collect_traffic_matrix": "\"false\"",
+      "memory_model_1": "\"bus\"",
+      "memory_model_2": "\"bus\"",
+      "system_model": "\"magic\""
+    },
+    "network/bus": {
+      "bandwidth": "25.6",
+      "ignore_local_traffic": "\"true\""
+    },
+    "network/bus/queue_model": {
+      "type": "\"contention\""
+    },
+    "network/emesh_hop_by_hop": {
+      "concentration": "1",
+      "dimensions": "2",
+      "hop_latency": "2",
+      "link_bandwidth": "64",
+      "size": "\"\"",
+      "wrap_around": "\"false\""
+    },
+    "network/emesh_hop_by_hop/broadcast_tree": {
+      "enabled": "\"false\""
+    },
+    "network/emesh_hop_by_hop/queue_model": {
+      "enabled": "\"true\"",
+      "type": "\"history_list\""
+    },
+    "network/emesh_hop_counter": {
+      "hop_latency": "2",
+      "link_bandwidth": "64"
+    },
+    "osemu": {
+      "clock_replace": "\"true\"",
+      "nprocs": "0",
+      "pthread_replace": "\"false\"",
+      "time_start": "1337000000"
+    },
+    "perf_model": {},
+    "perf_model/branch_predictor": {
+      "mispredict_penalty": "8",
+      "size": "1024",
+      "type": "\"pentium_m\""
+    },
+    "perf_model/cache": {
+      "levels": "3"
+    },
+    "perf_model/core": {
+      "core_model": "\"nehalem\"",
+      "frequency": "2.20",
+      "logical_cpus": "1",
+      "type": "\"rob\""
+    },
+    "perf_model/core/interval_timer": {
+      "dispatch_width": "4",
+      "issue_contention": "\"true\"",
+      "issue_memops_at_dispatch": "\"false\"",
+      "lll_cutoff": "30",
+      "lll_dependency_granularity": "64",
+      "memory_dependency_granularity": "8",
+      "num_outstanding_loadstores": "10",
+      "window_size": "128"
+    },
+    "perf_model/core/rob_timer": {
+      "address_disambiguation": "\"true\"",
+      "commit_width": "128",
+      "in_order": "\"false\"",
+      "issue_contention": "\"true\"",
+      "issue_memops_at_issue": "\"true\"",
+      "mlp_histogram": "\"false\"",
+      "outstanding_loads": "72",
+      "outstanding_stores": "56",
+      "rob_repartition": "\"true\"",
+      "rs_entries": "64",
+      "simultaneous_issue": "\"true\"",
+      "store_to_load_forwarding": "\"true\""
+    },
+    "perf_model/core/static_instruction_costs": {
+      "add": "1",
+      "branch": "1",
+      "delay": "0",
+      "div": "18",
+      "dynamic_misc": "1",
+      "fadd": "3",
+      "fdiv": "6",
+      "fmul": "5",
+      "fsub": "3",
+      "generic": "1",
+      "jmp": "1",
+      "mem_access": "0",
+      "mul": "3",
+      "recv": "1",
+      "spawn": "0",
+      "string": "1",
+      "sub": "1",
+      "sync": "0",
+      "tlb_miss": "0",
+      "unknown": "0"
+    },
+    "perf_model/dram": {
+      "chips_per_dimm": "8",
+      "controller_positions": "\"\"",
+      "controllers_interleaving": "4",
+      "dimms_per_controller": "4",
+      "direct_access": "\"false\"",
+      "latency": "93",
+      "num_controllers": "2",
+      "per_controller_bandwidth": "7.6",
+      "type": "\"constant\""
+    },
+    "perf_model/dram/cache": {
+      "enabled": "\"false\""
+    },
+    "perf_model/dram/normal": {
+      "standard_deviation": "0"
+    },
+    "perf_model/dram/queue_model": {
+      "enabled": "\"true\"",
+      "type": "\"history_list\""
+    },
+    "perf_model/dram_directory": {
+      "associativity": "16",
+      "directory_cache_access_time": "10",
+      "directory_type": "\"full_map\"",
+      "home_lookup_param": "6",
+      "interleaving": "1",
+      "locations": "\"dram\"",
+      "max_hw_sharers": "64",
+      "total_entries": "1048576"
+    },
+    "perf_model/dram_directory/limitless": {
+      "software_trap_penalty": "200"
+    },
+    "perf_model/dtlb": {
+      "associativity": "4",
+      "size": "64"
+    },
+    "perf_model/fast_forward": {
+      "model": "\"oneipc\""
+    },
+    "perf_model/fast_forward/oneipc": {
+      "include_branch_misprediction": "\"false\"",
+      "include_memory_latency": "\"true\"",
+      "interval": "100000"
+    },
+    "perf_model/itlb": {
+      "associativity": "8",
+      "size": "128"
+    },
+    "perf_model/l1_dcache": {
+      "address_hash": "\"mask\"",
+      "associativity": "8",
+      "cache_block_size": "64",
+      "cache_size": "32",
+      "data_access_time": "3",
+      "dvfs_domain": "\"core\"",
+      "next_level_read_bandwidth": "0",
+      "outstanding_misses": "0",
+      "passthrough": "\"false\"",
+      "perf_model_type": "\"parallel\"",
+      "perfect": "\"false\"",
+      "prefetcher": "\"none\"",
+      "replacement_policy": "\"lru\"",
+      "shared_cores": "1",
+      "tags_access_time": "1",
+      "writeback_time": "0",
+      "writethrough": "0"
+    },
+    "perf_model/l1_dcache/atd": {},
+    "perf_model/l1_icache": {
+      "address_hash": "\"mask\"",
+      "associativity": "8",
+      "cache_block_size": "64",
+      "cache_size": "32",
+      "coherent": "\"true\"",
+      "data_access_time": "3",
+      "dvfs_domain": "\"core\"",
+      "next_level_read_bandwidth": "0",
+      "passthrough": "\"false\"",
+      "perf_model_type": "\"parallel\"",
+      "perfect": "\"false\"",
+      "prefetcher": "\"none\"",
+      "replacement_policy": "\"lru\"",
+      "shared_cores": "1",
+      "tags_access_time": "1",
+      "writeback_time": "0",
+      "writethrough": "0"
+    },
+    "perf_model/l1_icache/atd": {},
+    "perf_model/l2_cache": {
+      "address_hash": "\"mask\"",
+      "associativity": "4",
+      "cache_block_size": "64",
+      "cache_size": "1024",
+      "data_access_time": "9",
+      "dvfs_domain": "\"core\"",
+      "next_level_read_bandwidth": "0",
+      "passthrough": "\"false\"",
+      "perf_model_type": "\"parallel\"",
+      "perfect": "\"false\"",
+      "prefetcher": "\"none\"",
+      "replacement_policy": "\"lru\"",
+      "shared_cores": "1",
+      "tags_access_time": "3",
+      "writeback_time": "0",
+      "writethrough": "0"
+    },
+    "perf_model/l2_cache/atd": {},
+    "perf_model/l3_cache": {
+      "address_hash": "\"mask\"",
+      "associativity": "16",
+      "cache_block_size": "64",
+      "cache_size": "16384",
+      "data_access_time": "35",
+      "dvfs_domain": "\"global\"",
+      "passthrough": "\"false\"",
+      "perf_model_type": "\"parallel\"",
+      "perfect": "\"false\"",
+      "prefetcher": "\"none\"",
+      "read_access_time": "0",
+      "replacement_policy": "\"lru\"",
+      "rw_enabled": "\"true\"",
+      "shared_cores": "2",
+      "tags_access_time": "2",
+      "write_access_time": "0",
+      "writeback_time": "0",
+      "writethrough": "0"
+    },
+    "perf_model/l3_cache/atd": {},
+    "perf_model/l4_cache": {
+      "passthrough": "\"false\"",
+      "perfect": "\"false\""
+    },
+    "perf_model/llc": {
+      "evict_buffers": "8"
+    },
+    "perf_model/nuca": {
+      "enabled": "\"false\""
+    },
+    "perf_model/stlb": {
+      "associativity": "12",
+      "size": "1536"
+    },
+    "perf_model/sync": {
+      "reschedule_cost": "1000"
+    },
+    "perf_model/tlb": {
+      "penalty": "30",
+      "penalty_parallel": "\"true\""
+    },
+    "power": {
+      "technology_node": "14",
+      "vdd": "1.2"
+    },
+    "progress_trace": {
+      "enabled": "\"false\"",
+      "filename": "\"\"",
+      "interval": "5000"
+    },
+    "queue_model": {},
+    "queue_model/basic": {
+      "moving_avg_enabled": "\"true\"",
+      "moving_avg_type": "\"arithmetic_mean\"",
+      "moving_avg_window_size": "1024"
+    },
+    "queue_model/history_list": {
+      "analytical_model_enabled": "\"true\"",
+      "max_list_size": "100"
+    },
+    "queue_model/windowed_mg1": {
+      "window_size": "1000"
+    },
+    "routine_tracer": {
+      "type": "\"none\""
+    },
+    "sampling": {
+      "enabled": "\"false\""
+    },
+    "scheduler": {
+      "type": "\"pinned\""
+    },
+    "scheduler/big_small": {
+      "debug": "\"false\"",
+      "quantum": "1000000"
+    },
+    "scheduler/pinned": {
+      "core_mask": "1",
+      "interleaving": "1",
+      "quantum": "1000000"
+    },
+    "scheduler/roaming": {
+      "core_mask": "1",
+      "quantum": "1000000"
+    },
+    "scheduler/static": {
+      "core_mask": "1"
+    },
+    "tags": {},
+    "traceinput": {
+      "address_randomization": "\"false\"",
+      "emulate_syscalls": "\"true\"",
+      "enabled": "\"true\"",
+      "mirror_output": "\"false\"",
+      "num_apps": "1",
+      "num_runs": "1",
+      "restart_apps": "\"false\"",
+      "stop_with_first_app": "\"false\"",
+      "timeout": "360",
+      "trace_prefix": "\"/tmp/tmpq0yfegp9/run_benchmarks\""
+    }
+  }
+}
