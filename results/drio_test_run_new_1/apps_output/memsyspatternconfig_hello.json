@@ -1,0 +1,47 @@
+{
+  "read_size_histogram": {
+    "1": 12352,
+    "2": 744,
+    "4": 4201,
+    "8": 15404,
+    "16": 273,
+    "32": 8,
+    "64": 0,
+    "other": 0
+  },
+  "write_size_histogram": {
+    "1": 126,
+    "2": 13,
+    "4": 1237,
+    "8": 10435,
+    "16": 553,
+    "32": 0,
+    "64": 0,
+    "other": 0
+  },
+  "exp_name": "DynamoRIOProfilers",
+  "benchmark_name": " ",
+  "read_freq": 0.2282443963101112,
+  "total_reads": 32982,
+  "write_freq": 0.08556223746219802,
+  "total_writes": 12364,
+  "read_size": 8,
+  "write_size": 8,
+  "total_writes_i": 1,
+  "total_writes_d": 1,
+  "total_reads_d": 1,
+  "total_reads_i": 1,
+  "workingset_size": 2505,
+  "execution_time": 144503,
+  "peak_memory_kb": null,
+  "metadata": null,
+  "unit": {
+    "read_freq": "accesses/us",
+    "write_freq": "accesses/us",
+    "total_reads": "count",
+    "total_writes": "count",
+    "workingset_size": "count",
+    "execution_time": "microseconds",
+    "peak_memory_kb": "KB"
+  }
+}

@@ -1,0 +1,19 @@
+system:
+  DesignTarget: cache
+  Capacity: 
+    Value: 128
+    Unit: KB
+  WordWidth: 128 # bits
+
+apps:
+  run: new
+  profiler: sniper
+  config: configs/sniper_run_config/skylake.cfg
+  level: l2
+  multithread: false
+  executable: configs/sniper_run_config/test_sniper
+
+
+tech:
+  run: existing
+  array_characterization_result_path: configs/perf_run_config/sample_FeFET_32nm_result.yaml
