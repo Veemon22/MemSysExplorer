@@ -57,17 +57,15 @@ Dynamorio
 
 ```
 system: # same as 'sample_FeFET_32nm_sys_config.yaml'
-  DesignTarget: cache
+  DesignTarget: RAM
   Capacity:
     Value: 128
     Unit: KB
   WordWidth: 128 # bits
 apps:
   run: new
-  profiler: perf
-  level: l2
-  arch: generic
-  executable: configs/perf_run_config/hello
+  profiler: dynamorio
+  executable: configs/drio_run_config/hello
 tech:
   run: new  
   array_characterization_config: configs/tech_configs/sample_configs/sample_FeFET_32nm_tech_config.yaml
