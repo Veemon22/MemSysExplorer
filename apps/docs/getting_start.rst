@@ -219,7 +219,7 @@ The MemSysExplorer profiling tool can be executed using the following general co
 
   .. code-block:: bash
 
-     python3 main.py --profiler perf --action extract_metrics --level l3 --executable /path/to/your/executable
+     python3 main.py --profiler perf --action profiling --level l3 --executable /path/to/your/executable
 
 - **Sniper Simulator**
 
