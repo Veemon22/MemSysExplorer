@@ -226,7 +226,7 @@ The MemSysExplorer profiling tool can be executed using the following general co
   .. code-block:: bash
 
      python3 main.py --profiler sniper --action both --level dram \
-       --results_dir /path/to/your/output --config config/sniper.cfg --executable /path/to/your/executable
+       --results_dir /path/to/your/output --config config/skylake.cfg --executable /path/to/your/executable
 
 - **NVBit**
 
