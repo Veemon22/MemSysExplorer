@@ -50,7 +50,7 @@ apps:
 
 tech:
   run: existing
-  array_characterization_result_path: configs/perf_run_config/sample_FeFET_32nm_result.yaml
+  array_characterization_result_path: configs/sniper_run_config/sample_FeFET_32nm_result.yaml
 ```
 
 Dynamorio
