@@ -6,6 +6,8 @@ import os
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
+datasets.MNIST.mirrors = ['https://ossci-datasets.s3.amazonaws.com/mnist/']
+
 EPOCHS = 5 
 LR = 0.001
 BATCH_SIZE = 64
