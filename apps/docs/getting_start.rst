@@ -238,7 +238,7 @@ The MemSysExplorer profiling tool can be executed using the following general co
 
   .. code-block:: bash
 
-     python3 main.py --profiler ncu --action extract_metrics --level l1 \
+     python3 main.py --profiler ncu --action profiling --level l1 \
        --config config/ncu_template.json --executable /path/to/your/executable
 
 1.6 Output Samples
