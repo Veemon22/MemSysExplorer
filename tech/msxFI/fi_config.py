@@ -23,6 +23,13 @@ temperature = 300  # Temperature in Kelvin (300K-400K)
 feature_size = 22  # Feature size in nm
 SS = 90  # Subthreshold Swing in mV/dec
 
+# Default retention times for DRAM models (in microseconds)
+default_retention_us = {
+    'dram1t': 64000.0,   # 64ms for standard 1T DRAM
+    'dram3t': 100.0,     # 100us for 3T DRAM
+    'dram333t': 501.0,   # 501us for 333T eDRAM
+}
+
 # optional print statements during msxFI execution
 Debug=False
 
