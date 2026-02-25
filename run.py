@@ -17,7 +17,7 @@ def check_inputs(config):
         print(f"Provide required top-level config fields: {required}")
         sys.exit(1)
 
-    # Check info for config 
+    # Displying information from config file
     sys_cfg = config['system']
     print("\nSys config:")
     print(sys_cfg)
@@ -66,6 +66,8 @@ def check_inputs(config):
             required = set(["level", "executable"])
     else:
         required = set(["patternconfig_path"])
+        if apps_cfg['profiler'] == "sniper":
+            required.add("multithread")
     if not required.issubset(apps_cfg):
         print(f"Provide required apps inputs: {required}")
         sys.exit(1)
@@ -160,32 +162,54 @@ def main():
         os.chdir("apps_output")
     
         if apps_cfg['profiler'] == "dynamorio":
-            apps_out = run_drio(apps_cfg['executable'], original_dir)
+            run_drio(apps_cfg['executable'], original_dir)
         elif apps_cfg['profiler'] == "sniper":
-            apps_out = run_sniper(apps_cfg['level'], apps_cfg['executable'], apps_cfg['config'], original_dir)
+            run_sniper(apps_cfg['level'], apps_cfg['executable'], apps_cfg['config'], original_dir)
         else: 
-            apps_out = run_perf(apps_cfg['level'], apps_cfg['arch'] if apps_cfg['arch'] != None else None, apps_cfg['executable'], original_dir)
+            run_perf(apps_cfg['level'], apps_cfg['arch'] if apps_cfg['arch'] != None else None, apps_cfg['executable'], original_dir)
 
         os.chdir(original_dir)
 
+        apps_output_dir = os.path.join(results_dir, "apps_output")
+        pattern_files = [os.path.join(apps_output_dir, f) for f in os.listdir(apps_output_dir)
+                if f.endswith(".json") and "pattern" in f.lower()]
+
+        if not pattern_files:
+            raise FileNotFoundError(f"No pattern config JSON found in {apps_output_dir}")
+        
+        if len(pattern_files) == 1:
+            apps_patternconfig = pattern_files[0]
+        else:
+            apps_patternconfig = pattern_files
+        
     else: # using existing run    
         apps_patternconfig = apps_cfg['patternconfig_path']
-    
-    apps_output_dir = os.path.join(results_dir, "apps_output")
-    pattern_files = [f for f in os.listdir(apps_output_dir)
-            if f.endswith(".json") and "pattern" in f.lower()]
+        if os.path.isdir(apps_patternconfig):
+            # If patternconfig_path is a directory, look for JSON files inside it
+            pattern_files = [os.path.join(apps_patternconfig, f) for f in os.listdir(apps_patternconfig) if f.endswith(".json") and "pattern" in f.lower()]
+            if not pattern_files:
+                raise FileNotFoundError(f"No pattern config JSON found in directory {apps_patternconfig}")
+            apps_patternconfig = pattern_files
 
-    if not pattern_files:
-        raise FileNotFoundError(f"No pattern config JSON found in {apps_output_dir}")
 
-    # If multiple pattern files exist, take the first one (or implement custom logic)
-    apps_patternconfig = os.path.join(apps_output_dir, pattern_files[0])
-    
-    # parse & print apps output
-    with open(apps_patternconfig, 'r') as f:
-        apps_result = json.load(f)
-    print("\nApps output:")
-    print(apps_result)
+    if isinstance(apps_patternconfig, list):
+        # parse & print apps output for multiple pattern config files
+        print(f"Multiple pattern config files found: {apps_patternconfig}")
+        apps_results = []
+        for pattern_file in pattern_files:
+            print(f"Parsing pattern config file: {pattern_file}")
+            with open(pattern_file, 'r') as f:
+                apps_result = json.load(f)
+            print(f"Apps output from {pattern_file}:")
+            print(apps_result)
+            apps_results.append(apps_result)
+    else:
+        # parse & print apps output for one pattern config file
+        with open(apps_patternconfig, 'r') as f:
+            apps_result = json.load(f)
+        print("\nApps output:")
+        print(apps_result)
+        apps_results = [apps_result]
 
     if tech_cfg['run'] == "new":
         # combine tech and system configs
@@ -220,28 +244,37 @@ def main():
     csv_filename = f"{config_name}_results.csv"
     csv_filepath = os.path.join(results_dir, "model_output", csv_filename)
 
-    if apps_cfg['profiler'] == "sniper":
-        # Sniper outputs a list of benchmarks (one per thread/core)
-        if apps_cfg['multithread']:
-            print("\nEvaluating multiple benchmarks from Sniper output...")
-            for i, benchmark in enumerate(apps_result):
-                model_result = evaluate(sys_cfg['DesignTarget'], benchmark, tech_result)
-                print(f"\nModel results for benchmark {i}:")
+    # Counter for multiple apps outputs (for the sake of getting their names)
+    i = 0
+
+    # Looping through every app result available
+    for app_result in apps_results:
+        apps_result_name = os.path.splitext(os.path.basename(pattern_files[i]))[0]
+        if apps_cfg['profiler'] == "sniper":
+            # Sniper outputs a list of benchmarks (one per thread/core)
+            if apps_cfg['multithread']:
+                print("\nEvaluating multiple benchmarks from Sniper output...")
+                for i, benchmark in enumerate(app_result):
+                    model_result = evaluate(sys_cfg['DesignTarget'], benchmark, tech_result)
+                    print(f"\nModel results for benchmark {i}:")
+                    print(model_result)
+                    results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath)
+                
+            else:
+                apps_result_single = apps_result[0]
+                model_result = evaluate(sys_cfg['DesignTarget'], apps_result_single, tech_result)
+                print("\nModel results:")
                 print(model_result)
-                results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, csv_filepath)
-            
+                results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath)
+
         else:
-            apps_result_single = apps_result[0]
-            model_result = evaluate(sys_cfg['DesignTarget'], apps_result_single, tech_result)
+            model_result = evaluate(sys_cfg['DesignTarget'], apps_result, tech_result)
             print("\nModel results:")
             print(model_result)
-            results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, csv_filepath)
-
-    else:
-        model_result = evaluate(sys_cfg['DesignTarget'], apps_result, tech_result)
-        print("\nModel results:")
-        print(model_result)
-        results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, csv_filepath)
+            results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath)
+        
+        # Increment counter for benchmark names
+        i += 1
 
         
     

@@ -97,7 +97,8 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
 
         if not file_exists:
             header = [
-                "Config Name",
+                "PatternConfig Name",
+                "Benchmark",
                 "Profiler",
                 "Cache Level",
                 "Design Target",
@@ -138,6 +139,7 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
         # Write data row
         row = [
             config_name,
+            model_result.get('benchmark', 'unknown'),
             apps_cfg.get('profiler', 'unknown'),
             apps_cfg.get('level', 'N/A'),
             sys_cfg.get('DesignTarget', 'unknown'),

@@ -11,6 +11,9 @@ def evaluate(DesignTarget, apps_result, tech_result):
     Returns:
         dict with evaluation results
     """
+
+    benchmark = apps_result.get('benchmark_name', 'unknown')
+
     if DesignTarget == "cache":
         # Extract benchmark data
         if 'total_hits' in apps_result:
@@ -55,6 +58,7 @@ def evaluate(DesignTarget, apps_result, tech_result):
         total_power = leakagepower + hitpower + misspower + writepower 
 
         return {
+            "benchmark": benchmark,
             "total_hit_latency_ms": hitlatency_total,
             "total_miss_latency_ms": misslatency_total,
             "total_write_latency_ms": writelatency_total,
@@ -99,6 +103,7 @@ def evaluate(DesignTarget, apps_result, tech_result):
         total_power = leakagepower + readpower + writepower
         
         return {
+            "benchmark": benchmark,
             "total_read_latency_ms": readlatency_total,
             "total_write_latency_ms": writelatency_total,
             "total_latency_ms": total_latency,
