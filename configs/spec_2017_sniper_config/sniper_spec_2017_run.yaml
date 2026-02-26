@@ -1,0 +1,17 @@
+system:
+  DesignTarget: cache
+  Capacity: 
+    Value: 128
+    Unit: KB
+  WordWidth: 128 # bits
+
+apps:
+  run: existing
+  profiler: sniper
+  multithread: false
+  patternconfig_path: configs/spec_2017_sniper_config/pattern_configs
+
+
+tech:
+  run: existing
+  array_characterization_result_path: configs/spec_2017_sniper_config/sample_FeFET_32nm_result.yaml

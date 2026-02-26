@@ -59,6 +59,10 @@ def evaluate(DesignTarget, apps_result, tech_result):
 
         return {
             "benchmark": benchmark,
+            "total_hits": hits,
+            "total_misses": misses,
+            "total_writes": writes,
+            "total_reads": reads,
             "total_hit_latency_ms": hitlatency_total,
             "total_miss_latency_ms": misslatency_total,
             "total_write_latency_ms": writelatency_total,
@@ -104,6 +108,8 @@ def evaluate(DesignTarget, apps_result, tech_result):
         
         return {
             "benchmark": benchmark,
+            "total_writes": writes,
+            "total_reads": reads,
             "total_read_latency_ms": readlatency_total,
             "total_write_latency_ms": writelatency_total,
             "total_latency_ms": total_latency,
