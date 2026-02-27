@@ -1,4 +1,4 @@
-4. Contributing
+5. Contributing
 ===============
 
 This section provides guidelines for developers to extend the MemSysExplorer framework by adding custom profilers into the profiling pipeline. The core components required for extension include:

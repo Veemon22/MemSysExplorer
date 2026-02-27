@@ -1,4 +1,4 @@
-6. Profiler Package Documentation
+7. Profiler Package Documentation
 =================================
 
 This section references all profiler modules documented from the codebase at:

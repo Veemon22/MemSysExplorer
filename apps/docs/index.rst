@@ -17,8 +17,8 @@ The collected memory statistics and traces from this layer are designed to be **
 By leveraging a suite of modular profiling tools, MemSysExplorer enables researchers and system architects to:
 
 - Understand memory access patterns, bandwidth usage, and spatial/temporal locality.
-- Evaluate architectural trade-offs using real or simulated memory traces.
-- Drive technology-aware simulations and modeling pipelines with accurate application-driven data.
+- Providing a tool to capture memory characterization dataset.
+- Enable fast development of different memory technologies and downstream tools.
 
 This interface serves as the foundation for collecting structured profiling data that feeds the analytical backend of MemSysExplorer. The framework can be described as in Figure 1.
 
@@ -61,6 +61,7 @@ For more details, check out the following sections:
 
 - :doc:`metadata` – Information on profiling metadata and result structures.
 - :doc:`profilers` – Overview of supported profilers and how to use them.
+- :doc:`tools` – Analysis and utility tools for parsing and visualizing profiler output.
 - :doc:`developing` – Guide for contributing to and extending the framework.
 - :doc:`licensing` – Licensing and attribution information for integrated profiling tools.
 - :doc:`packaging` – Structure and modules of the MemSysExplorer package.
@@ -277,6 +278,7 @@ Thank you for using MemSysExplorer! For any questions, please refer to the respe
    getting_start
    metadata
    profilers
+   tools
    developing
    licensing
    packaging
