@@ -1,8 +1,10 @@
 system:
   DesignTarget: cache
   Capacity: 
-    Value: 128
-    Unit: KB
+    - Value: 8
+      Unit: MB
+    - Value: 16
+      Unit: MB
   WordWidth: 128 # bits
   OptimizationTarget: WriteEDP
 
@@ -14,5 +16,5 @@ apps:
 
 
 tech:
-  run: existing
-  array_characterization_result_path: configs/spec_2017_sniper_config/sample_FeFET_32nm_result.yaml
+  run: new
+  array_characterization_config: configs/tech_configs/sample_configs/sample_FeFET_32nm_tech_config.yaml

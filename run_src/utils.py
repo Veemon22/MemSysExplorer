@@ -90,7 +90,7 @@ def parse_array_char_output(yaml_file_path):
     
     return data
 
-def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, csv_filepath):
+def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, csv_filepath, capacity=None):
     file_exists = os.path.exists(csv_filepath)
     with open(csv_filepath, 'a', newline='') as csvfile:
         writer = csv.writer(csvfile)
@@ -103,7 +103,7 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                     "Profiler",
                     "Cache Level",
                     "Design Target",
-                    "Capacity (KB)",
+                    "Capacity",
                     "Word Width (bits)",
                     "Optimization Target",
                     "Total Reads",
@@ -135,7 +135,7 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                     "Benchmark",
                     "Profiler",
                     "Design Target",
-                    "Capacity (KB)",
+                    "Capacity",
                     "Word Width (bits)",
                     "Optimization Target",
                     "Total Reads",
@@ -157,13 +157,8 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                 ]
             writer.writerow(header)
         
-        # Extract tech data properly
-        # Todo: Make this handle all tech results
-        if isinstance(tech_result, list):
-            tech_data = tech_result[0]
-        else:
-            tech_data = tech_result
-        
+        tech_data = tech_result
+
         # Write data row
         if sys_cfg.get("DesignTarget") == "cache":
             row = [
@@ -172,7 +167,7 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                 apps_cfg.get('profiler', 'unknown'),
                 apps_cfg.get('level', 'N/A'),
                 sys_cfg.get('DesignTarget', 'unknown'),
-                sys_cfg.get('Capacity', {}).get('Value', 'N/A'),
+                capacity if capacity is not None else str(sys_cfg.get('Capacity', 'N/A')),
                 sys_cfg.get('WordWidth', 'N/A'),
                 sys_cfg.get('OptimizationTarget', 'N/A'),
                 model_result.get('total_reads', 0),
@@ -204,7 +199,7 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                 model_result.get('benchmark', 'unknown'),
                 apps_cfg.get('profiler', 'unknown'),
                 sys_cfg.get('DesignTarget', 'unknown'),
-                sys_cfg.get('Capacity', {}).get('Value', 'N/A'),
+                capacity if capacity is not None else str(sys_cfg.get('Capacity', 'N/A')),
                 sys_cfg.get('WordWidth', 'N/A'),
                 sys_cfg.get('OptimizationTarget', 'N/A'),
                 model_result.get('total_reads', 0),

@@ -111,13 +111,15 @@ def check_inputs(config):
     # Check if OptimizationTarget lines up with existing data
     if tech_cfg['run'] == "existing":
         if sys_cfg['DesignTarget'] == "cache":
-            with open(tech_cfg['array_characterization_result_path'], 'r') as f:
-                tech_result = yaml.load(f, Loader=yaml.FullLoader)
-            if 'OptimizationTarget' in sys_cfg:
-                optimization_target = sys_cfg['OptimizationTarget']
-                if 'OptimizationTarget' in tech_result:
-                    if optimization_target != tech_result['OptimizationTarget']:
-                        print(f"Warning: System config OptimizationTarget '{optimization_target}' does not match tech result OptimizationTarget '{tech_result['OptimizationTarget']}'. Consider updating system config or using a different tech result.")
+            result_paths = tech_cfg['array_characterization_result_path']
+            if not isinstance(result_paths, list):
+                result_paths = [result_paths]
+            for path in result_paths:
+                with open(path, 'r') as f:
+                    tech_result = yaml.load(f, Loader=yaml.FullLoader)
+                if 'OptimizationTarget' in sys_cfg and 'OptimizationTarget' in tech_result:
+                    if sys_cfg['OptimizationTarget'] != tech_result['OptimizationTarget']:
+                        print(f"Warning: OptimizationTarget mismatch in {path}")
                         sys.exit(1)
                 
     #TODO: add word width vs. read/write size logic checks
@@ -225,29 +227,54 @@ def main():
         apps_results = [apps_result]
 
     if tech_cfg['run'] == "new":
-        # combine tech and system configs
         arraychar_cfg = tech_cfg
         arraychar_cfg.update(sys_cfg)
         os.chdir(results_dir)
         os.mkdir("tech_output")
         os.chdir(original_dir)
-        arraychar_cfg["OutputDirectory"] = os.path.abspath(os.path.join(results_dir, "tech_output")) + "/"
-        print("\nUpdated Tech YAML:")
-        print(arraychar_cfg)
-
-        # Run Array Characterization
-        tech_yaml_str = yaml.dump(arraychar_cfg)
         
-        with tempfile.NamedTemporaryFile(mode='w+', suffix='.yaml', delete=False) as tech_yaml:
-            tech_yaml.write(tech_yaml_str)
-            tech_yaml_path = tech_yaml.name
+        tech_output_dir = os.path.abspath(os.path.join(results_dir, "tech_output")) + "/"
 
-        tech_result = run_array_characterization(tech_yaml_path, Tech_Dir)
-        os.remove(tech_yaml_path)
+        capacity_list = sys_cfg.get('Capacity', [])
+        if not isinstance(capacity_list, list):
+            capacity_list = [capacity_list]
+
+        tech_results = {}
+
+        for cap in capacity_list:
+            cap_label = f"{cap['Value']}{cap['Unit']}"
+
+            arraychar_cfg_copy = arraychar_cfg.copy()
+            arraychar_cfg_copy['Capacity'] = cap
+            arraychar_cfg_copy['OutputDirectory'] = tech_output_dir
+
+            print(f"\nRunning array characterization for capacity {cap_label}")
+
+            tech_yaml_str = yaml.dump(arraychar_cfg_copy)
+            with tempfile.NamedTemporaryFile(mode='w+', suffix='.yaml', delete=False) as tech_yaml:
+                tech_yaml.write(tech_yaml_str)
+                tech_yaml_path = tech_yaml.name
+
+            tech_results[cap_label] = run_array_characterization(tech_yaml_path, Tech_Dir)
+            os.remove(tech_yaml_path)
+
     else:
-        tech_result = parse_array_char_output(tech_cfg['array_characterization_result_path'])
-    print("\nTech Output:")
-    print(tech_result)
+        # Support multiple pre-existing result paths
+        result_paths = tech_cfg['array_characterization_result_path']
+        if not isinstance(result_paths, list):
+            result_paths = [result_paths]
+
+        capacity_list = sys_cfg.get('Capacity', [])
+        if not isinstance(capacity_list, list):
+            capacity_list = [capacity_list]
+
+        tech_results = {}
+        for path, cap in zip(result_paths, capacity_list):
+            cap_label = f"{cap['Value']}{cap['Unit']}"
+            tech_results[cap_label] = parse_array_char_output(path)
+
+    print("\nTech Results:")
+    print(tech_results)
 
     # ANALYTICAL MODEL - handle single or multiple benchmarks
     os.chdir(results_dir)
@@ -257,40 +284,36 @@ def main():
     csv_filename = f"{config_name}_results.csv"
     csv_filepath = os.path.join(results_dir, "model_output", csv_filename)
 
-    # Counter for multiple apps outputs (for the sake of getting their names)
     i = 0
 
-    # Looping through every app result available
     for app_result in apps_results:
         apps_result_name = os.path.splitext(os.path.basename(pattern_files[i]))[0]
-        if apps_cfg['profiler'] == "sniper":
-            # Sniper outputs a list of benchmarks (one per thread/core)
-            if apps_cfg['multithread']:
-                print("\nEvaluating multiple benchmarks from Sniper output...")
-                for i, benchmark in enumerate(app_result):
-                    model_result = evaluate(sys_cfg['DesignTarget'], benchmark, tech_result)
-                    print(f"\nModel results for benchmark {i}:")
+        
+        for cap_label, tech_result in tech_results.items():
+            print(f"\nEvaluating capacity: {cap_label}")
+
+            if apps_cfg['profiler'] == "sniper":
+                if apps_cfg['multithread']:
+                    print("\nEvaluating multiple benchmarks from Sniper output...")
+                    for j, benchmark in enumerate(app_result):
+                        model_result = evaluate(sys_cfg['DesignTarget'], benchmark, tech_result)
+                        print(f"\nModel results for benchmark {j}:")
+                        print(model_result)
+                        results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath, cap_label)
+                else:
+                    apps_result_single = app_result[0]
+                    model_result = evaluate(sys_cfg['DesignTarget'], apps_result_single, tech_result)
+                    print("\nModel results:")
                     print(model_result)
-                    results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath)
-                
+                    results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath, cap_label)
             else:
-                apps_result_single = apps_result[0]
-                model_result = evaluate(sys_cfg['DesignTarget'], apps_result_single, tech_result)
+                model_result = evaluate(sys_cfg['DesignTarget'], app_result, tech_result)
                 print("\nModel results:")
                 print(model_result)
-                results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath)
+                results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath, cap_label)
 
-        else:
-            model_result = evaluate(sys_cfg['DesignTarget'], apps_result, tech_result)
-            print("\nModel results:")
-            print(model_result)
-            results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath)
-        
-        # Increment counter for benchmark names
         i += 1
 
-        
-    
     print(f"\n✓ Model results saved to CSV: {csv_filepath}")
 
 if __name__ == '__main__':
