@@ -344,6 +344,7 @@ These are the two **core output traces** produced by all profilers in the MemSys
 
 For additional profiler-specific outputs, refer to the respective sections under :doc:`profilers`.
 
+To parse and analyze these output files, see the :doc:`tools` documentation for utilities like ``trace_parser.py``, ``timeseries_parser.py``, and visualization tools.
 
 1.7 Profiler-Specific Configurations
 ------------------------------------
