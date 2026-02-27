@@ -43,7 +43,7 @@ def check_inputs(config):
             sys_cfg = yaml.load(f, Loader=yaml.FullLoader)
         print("Loaded system config from path: {sys_cfg}")
 
-    required = set(['DesignTarget', 'Capacity', 'WordWidth'])
+    required = set(['DesignTarget', 'Capacity', 'WordWidth', 'OptimizationTarget'])
 
     if not required.issubset(sys_cfg):
         print(f"Provide required system inputs: {required}")
@@ -107,6 +107,19 @@ def check_inputs(config):
     if apps_cfg['profiler'] == "dynamorio" and sys_cfg['DesignTarget'] == "cache":
         print("Choose Sniper or Perf as a profiler for cache modeling.")
         sys.exit(1)
+
+    # Check if OptimizationTarget lines up with existing data
+    if tech_cfg['run'] == "existing":
+        if sys_cfg['DesignTarget'] == "cache":
+            with open(tech_cfg['array_characterization_result_path'], 'r') as f:
+                tech_result = yaml.load(f, Loader=yaml.FullLoader)
+            if 'OptimizationTarget' in sys_cfg:
+                optimization_target = sys_cfg['OptimizationTarget']
+                if 'OptimizationTarget' in tech_result:
+                    if optimization_target != tech_result['OptimizationTarget']:
+                        print(f"Warning: System config OptimizationTarget '{optimization_target}' does not match tech result OptimizationTarget '{tech_result['OptimizationTarget']}'. Consider updating system config or using a different tech result.")
+                        sys.exit(1)
+                
     #TODO: add word width vs. read/write size logic checks
 
     return sys_cfg, apps_cfg, tech_cfg

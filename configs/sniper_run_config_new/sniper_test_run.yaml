@@ -4,6 +4,7 @@ system:
     Value: 128
     Unit: KB
   WordWidth: 128 # bits
+  OptimizationTarget: WriteEDP
 
 apps:
   run: new

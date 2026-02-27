@@ -7,7 +7,7 @@
       "8": 0,
       "16": 0,
       "32": 0,
-      "64": 1213,
+      "64": 1216,
       "other": 0
     },
     "write_size_histogram": {
@@ -20,15 +20,15 @@
       "64": 628,
       "other": 0
     },
-    "load_hits": 1213,
+    "load_hits": 1216,
     "load_misses": 0,
     "store_hits": 628,
     "store_misses": 0,
     "exp_name": "SniperProfilers",
     "benchmark_name": "core_0",
-    "read_freq": 429882.6948293582,
-    "total_reads": 1213,
-    "write_freq": 222560.86756210795,
+    "read_freq": 430961.1567904735,
+    "total_reads": 1216,
+    "write_freq": 222568.75531613268,
     "total_writes": 628,
     "read_size": 64,
     "write_size": 64,
