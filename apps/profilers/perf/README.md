@@ -1,4 +1,4 @@
-# Profiling with Intel Perf
+# Profiling with Perf (Intel & AMD)
 
 The **PerfProfiler** integrates the Linux `perf` tool into MemSysExplorer to collect **Hardware Performance Counter (HPC)** metrics from CPU workloads. This allows users to examine memory-level behavior and performance characteristics, such as cache hits, misses, and memory bandwidth across multiple levels of the cache hierarchy.
 
@@ -16,60 +16,89 @@ The MemSysExplorer interface for `perf` supports two actions:
 
 You may also specify `both` to sequentially execute both actions.
 
+## Supported Architectures
+
+The `--arch` flag specifies the CPU architecture. This determines which perf events are collected:
+
+| Architecture | Flag | Notes |
+|--------------|------|-------|
+| Intel | `--arch intel` | Default. Supports L1, L2, L3, DRAM levels |
+| AMD | `--arch amd` | Supports L1, L2, L3, DRAM levels |
+
+Each architecture has different perf event names for the same metrics. The profiler automatically selects the correct events based on the `--arch` flag.
+
 ## Supported Memory Levels
 
-The `--level` flag defines the memory hierarchy level to analyze. The current implementation supports:
+The `--level` flag defines the memory hierarchy level to analyze:
 
-* `l1`
-* `l2`
-* `l3`
+| Level | Description | Key Metrics |
+|-------|-------------|-------------|
+| `l1` | L1 Data Cache | loads, stores, load misses |
+| `l2` | L2 Cache | load hits/misses, RFO (stores) |
+| `l3` | L3/LLC Cache | hits, misses, loads |
+| `dram` | Main Memory | local/remote DRAM accesses |
+| `all` | All levels | Collects all available counters |
 
 Each level maps to a predefined set of `perf` events selected to best approximate that layer's behavior.
 
-## Required Arguments
+## Arguments
 
-The profiler interface expects the following arguments:
-
-```python
-@classmethod
-def required_profiling_args(cls):
-    return ["executable", "level"]
-
-@classmethod
-def required_extract_args(cls, action):
-    if action == "extract_metrics":
-        return ["report_file"]
-    else:
-        return []
-```
+### Required Arguments
 
 * `--executable`: The application binary to profile.
-* `--level`: One of `l1`, `l2`, or `l3` to indicate which cache level to analyze.
+* `--level`: One of `l1`, `l2`, `l3`, `dram`, or `all` to indicate which cache level to analyze.
+
+### Optional Arguments
+
+* `--arch`: CPU architecture (`intel` or `amd`). Default: `intel`
+* `--repeat`: Number of measurement repeats. Default: `3`
 * `--report_file`: (For `extract_metrics`) The path to the saved `perf` output log.
 
 ## Example Usage
 
-### Run profiling only
+### Run profiling on Intel (default)
 
 ```bash
-python main.py --profiler perf --action profiling --level l1 --executable ./your_cpu_binary
+python main.py -p perf -a both --level l2 --executable ./your_cpu_binary
+```
+
+### Run profiling on AMD
+
+```bash
+python main.py -p perf -a both --level l2 --arch amd --executable ./your_cpu_binary
+```
+
+### Profile DRAM level on Intel
+
+```bash
+python main.py -p perf -a both --level dram --arch intel --executable ./your_cpu_binary
 ```
 
 ### Extract metrics from a previous run
 
 ```bash
-python main.py --profiler perf --action extract_metrics --level l1 --report_file ./perf_output.log
+python main.py -p perf -a extract_metrics --level l2 --report_file ./perf_output.log
 ```
 
-### Perform both profiling and metric extraction
+## Output Metrics
 
-```bash
-python main.py --profiler perf --action both --level l1 --executable ./your_cpu_binary
-```
+The profiler normalizes raw counters into standard metrics for each level:
+
+| Metric | Description |
+|--------|-------------|
+| `total_reads` | Total read requests to this level |
+| `total_writes` | Total write requests to this level |
+| `load_hits` | Reads served at this level |
+| `load_misses` | Reads that went to next level |
+| `store_hits` | Writes served at this level |
+| `store_misses` | Writes that went to next level |
+| `read_freq` | Read frequency (count/s) |
+| `write_freq` | Write frequency (count/s) |
 
 ## Notes
 
-* `perf` is originally designed for use on **Intel CPUs**. Accuracy and event naming may vary for other architectures.
+* Supports both **Intel** and **AMD** CPUs via the `--arch` flag.
+* Some counters may not be available on all CPU models. The profiler validates events before collection.
 * Some systems may restrict access to performance counters. To enable access:
 
   ```bash
@@ -82,7 +111,8 @@ python main.py --profiler perf --action both --level l1 --executable ./your_cpu_
 
 * **Missing perf command**: Ensure `perf` is installed. On Ubuntu, install via `sudo apt install linux-tools-common linux-tools-generic`.
 * **Permission denied**: You may need to adjust kernel settings as mentioned above.
-* **Incorrect level specified**: Ensure the level is one of `l1`, `l2`, or `l3`. Other levels are not supported.
+* **Unsupported events**: Some perf events may not be available on your CPU. The profiler will warn and skip unavailable events.
+* **Wrong architecture**: If you see many `<not supported>` events, verify you're using the correct `--arch` flag for your CPU.
 
 ## License
 
