@@ -39,6 +39,10 @@ def parse_array_char_output(yaml_file_path):
         data={}
 
         if "CacheDesign" in result:
+            # Data about Tech
+            data["mem_cell_type"] = result['MemoryCell'].get('MemoryCellType', 'unknown')
+            data["capacity"] = f"{result['Capacity'].get('Value','N/A')}{result['Capacity'].get('Unit','')}"
+
             cache = result["CacheDesign"]
             
             data["total_area"] = cache['Area']['Total_mm2']
@@ -73,6 +77,10 @@ def parse_array_char_output(yaml_file_path):
                     data["tag_array_write_dynamic_energy"] = tag_results['Power']['Set']['DynamicEnergy_pJ']
         
         else:
+            # Data About Tech
+            data["mem_cell_type"] = result['MemoryCell'].get('MemoryCellType', 'unknown')
+            data["capacity"] = f"{result['Capacity'].get('Value','N/A')}{result['Capacity'].get('Unit','')}"
+
             # Non-cache design
             if "Results" in result:
                 res = result["Results"]
@@ -90,7 +98,7 @@ def parse_array_char_output(yaml_file_path):
     
     return data
 
-def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, csv_filepath, capacity=None):
+def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, csv_filepath):
     file_exists = os.path.exists(csv_filepath)
     with open(csv_filepath, 'a', newline='') as csvfile:
         writer = csv.writer(csvfile)
@@ -101,6 +109,7 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                     "PatternConfig Name",
                     "Benchmark",
                     "Profiler",
+                    "MemCellType",
                     "Cache Level",
                     "Design Target",
                     "Capacity",
@@ -134,6 +143,7 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                     "PatternConfig Name",
                     "Benchmark",
                     "Profiler",
+                    "MemCellType",
                     "Design Target",
                     "Capacity",
                     "Word Width (bits)",
@@ -165,9 +175,10 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                 config_name,
                 model_result.get('benchmark', 'unknown'),
                 apps_cfg.get('profiler', 'unknown'),
+                tech_data.get('mem_cell_type', 'unknown'),
                 apps_cfg.get('level', 'N/A'),
                 sys_cfg.get('DesignTarget', 'unknown'),
-                capacity if capacity is not None else str(sys_cfg.get('Capacity', 'N/A')),
+                tech_data.get('capacity', 'N/A'),
                 sys_cfg.get('WordWidth', 'N/A'),
                 sys_cfg.get('OptimizationTarget', 'N/A'),
                 model_result.get('total_reads', 0),
@@ -198,8 +209,9 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                 config_name,
                 model_result.get('benchmark', 'unknown'),
                 apps_cfg.get('profiler', 'unknown'),
+                tech_data.get('mem_cell_type', 'unknown'),
                 sys_cfg.get('DesignTarget', 'unknown'),
-                capacity if capacity is not None else str(sys_cfg.get('Capacity', 'N/A')),
+                tech_data.get('capacity', 'N/A'),
                 sys_cfg.get('WordWidth', 'N/A'),
                 sys_cfg.get('OptimizationTarget', 'N/A'),
                 model_result.get('total_reads', 0),

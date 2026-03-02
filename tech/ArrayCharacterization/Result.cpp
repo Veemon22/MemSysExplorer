@@ -708,6 +708,7 @@ YAML::Node Result::toYamlNode() {
 			default: result["MemoryCell"]["MemoryCellType"] = "Unknown"; break;
 		}
 
+
 		// Cell area
 		result["MemoryCell"]["CellArea_F2"]  = cell->area;
 		result["MemoryCell"]["CellArea_um2"] = cell->area / 1000000.0 * tech->featureSizeInNano * tech->featureSizeInNano;
@@ -808,6 +809,38 @@ YAML::Node Result::toYamlNode() {
 		}
 
 	}
+
+	if(inputParameter->designTarget != cache){
+		//Capacity
+		if (inputParameter->capacity < 1024) {
+			result["Capacity"]["Value"] = inputParameter->capacity;
+			result["Capacity"]["Unit"] = "B";
+		} else if (inputParameter->capacity < 1024 * 1024) {
+			result["Capacity"]["Value"] = inputParameter->capacity / 1024;
+			result["Capacity"]["Unit"] = "KB";
+		} else if (inputParameter->capacity < 1024 * 1024 * 1024) {
+			result["Capacity"]["Value"] = inputParameter->capacity / 1024 / 1024;
+			result["Capacity"]["Unit"] = "MB";
+		} else {
+			result["Capacity"]["Value"] = inputParameter->capacity / 1024 / 1024 / 1024;
+			result["Capacity"]["Unit"] = "GB";
+		}
+	
+
+
+		switch (optimizationTarget) {
+			case read_latency_optimized: result["OptimizationTarget"] = "ReadLatency"; break;
+			case write_latency_optimized: result["OptimizationTarget"] = "WriteLatency"; break;
+			case read_energy_optimized: result["OptimizationTarget"] = "ReadDynamicEnergy"; break;
+			case write_energy_optimized: result["OptimizationTarget"] = "WriteDynamicEnergy"; break;
+			case read_edp_optimized: result["OptimizationTarget"] = "ReadEDP"; break;
+			case write_edp_optimized: result["OptimizationTarget"] = "WriteEDP"; break;
+			case leakage_optimized: result["OptimizationTarget"] = "LeakagePower"; break;
+			case area_optimized: result["OptimizationTarget"] = "Area"; break;
+			default:                 result["OptimizationTarget"] = "Unknown";
+		}
+	}
+
     // Configuration
     result["Configuration"]["BankOrganization"]["Rows"] = bank->numRowMat;
     result["Configuration"]["BankOrganization"]["Columns"] = bank->numColumnMat;
@@ -1161,7 +1194,7 @@ YAML::Node Result::toYamlNodeAsCache(Result &tagResult, CacheAccessMode cacheAcc
 		result["MemoryCell"]["NumberOfInputFingers"]   = cell->nFingers;
 		result["MemoryCell"]["NumberOfLevelsPerCell"] = cell->nLvl;
 	}
-	
+
     // Calculate cache metrics
     double cacheHitLatency, cacheMissLatency, cacheWriteLatency;
     double cacheHitDynamicEnergy, cacheMissDynamicEnergy, cacheWriteDynamicEnergy;
@@ -1213,6 +1246,21 @@ YAML::Node Result::toYamlNodeAsCache(Result &tagResult, CacheAccessMode cacheAcc
 		default: result["CacheDesign"]["DesignTarget"] = "Unknown"; break;
 	}
 
+	//Capacity
+	if (inputParameter->capacity < 1024) {
+		result["Capacity"]["Value"] = inputParameter->capacity;
+		result["Capacity"]["Unit"] = "B";
+	} else if (inputParameter->capacity < 1024 * 1024) {
+		result["Capacity"]["Value"] = inputParameter->capacity / 1024;
+		result["Capacity"]["Unit"] = "KB";
+	} else if (inputParameter->capacity < 1024 * 1024 * 1024) {
+		result["Capacity"]["Value"] = inputParameter->capacity / 1024 / 1024;
+		result["Capacity"]["Unit"] = "MB";
+	} else {
+		result["Capacity"]["Value"] = inputParameter->capacity / 1024 / 1024 / 1024;
+		result["Capacity"]["Unit"] = "GB";
+	}
+
     switch (optimizationTarget) {
         case read_latency_optimized: result["CacheDesign"]["OptimizationTarget"] = "ReadLatency"; break;
         case write_latency_optimized: result["CacheDesign"]["OptimizationTarget"] = "WriteLatency"; break;
@@ -1220,7 +1268,7 @@ YAML::Node Result::toYamlNodeAsCache(Result &tagResult, CacheAccessMode cacheAcc
         case write_energy_optimized: result["CacheDesign"]["OptimizationTarget"] = "WriteDynamicEnergy"; break;
 		case read_edp_optimized: result["CacheDesign"]["OptimizationTarget"] = "ReadEDP"; break;
 		case write_edp_optimized: result["CacheDesign"]["OptimizationTarget"] = "WriteEDP"; break;
-		case leakage_optimized: result["CacheDesign"]["OptimizationTarget"] = "Leakage"; break;
+		case leakage_optimized: result["CacheDesign"]["OptimizationTarget"] = "LeakagePower"; break;
 		case area_optimized: result["CacheDesign"]["OptimizationTarget"] = "Area"; break;
         default:                 result["CacheDesign"]["OptimizationTarget"] = "Unknown";
     }

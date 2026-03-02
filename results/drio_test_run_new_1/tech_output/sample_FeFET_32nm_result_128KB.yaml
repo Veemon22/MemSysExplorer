@@ -16,6 +16,10 @@ MemoryCell:
   SetCurrent_uA: 0
   SetPulse_s: 1.34e-15
   AccessType: CMOS
+Capacity:
+  Value: 128
+  Unit: KB
+OptimizationTarget: WriteEDP
 Configuration:
   BankOrganization:
     Rows: 8

@@ -1,0 +1,30 @@
+MemoryCellInputFile: sample_cells/sample_CTT_cell.yaml
+
+ProcessNode: 32
+DeviceRoadmap: LOP
+
+CacheAccessMode: Normal
+Associativity: 8  # For cache only
+
+OutputDirectory: 
+OutputFilePrefix: sample_CTT_32nm_result
+EnablePruning: Yes
+
+LocalWire:
+  Type: LocalAggressive
+  RepeaterType: RepeatedNone
+  UseLowSwing: No
+
+GlobalWire:
+  Type: GlobalAggressive
+  RepeaterType: RepeatedNone
+  UseLowSwing: No
+
+Routing: H-tree
+
+InternalSensing: true
+
+Temperature: 370  # Kelvin
+RetentionTime: 40  # microseconds
+
+BufferDesignOptimization: latency

@@ -39,6 +39,9 @@ CacheDesign:
     CacheTotalLeakagePower_mW: 2.8275533956951397
     CacheDataArrayLeakagePower_mW: 1.0491316218237097
     CacheTagArrayLeakagePower_mW: 1.7784217738714299
+Capacity:
+  Value: 128
+  Unit: KB
 DataArray:
   Configuration:
     BankOrganization:

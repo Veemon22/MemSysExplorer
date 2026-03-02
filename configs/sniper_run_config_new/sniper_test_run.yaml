@@ -16,5 +16,5 @@ apps:
 
 
 tech:
-  run: existing
-  array_characterization_result_path: configs/sniper_run_config_new/sample_FeFET_32nm_result.yaml
+  run: new
+  array_characterization_config: configs/tech_configs/sample_configs/sample_FeFET_32nm_tech_config.yaml
