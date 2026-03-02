@@ -84,6 +84,63 @@ python main.py --profiler perf --action both --level l1 --executable ./your_cpu_
 * **Permission denied**: You may need to adjust kernel settings as mentioned above.
 * **Incorrect level specified**: Ensure the level is one of `l1`, `l2`, or `l3`. Other levels are not supported.
 
+## Memory Cascade Model
+
+### L1 Data Cache 
+| Metric | Formula |
+|--------|---------|
+| L1D_Reads | `L1D_Reads` |
+| L1D_Writes | `L1D_Writes` |
+| L1D_Read_Hits | `L1D_Reads - L1D_Read_Misses` |
+| L1D_Read_Misses | `L1D_Read_Misses` |
+| L1D_Read_Hit_Rate | `L1D_Read_Hits / L1D_Reads` |
+| L1D_Read_Miss_Rate | `L1D_Read_Misses / L1D_Reads` |
+| L1D_Write_Hits | `L1D_Writes - L1D_Write_Misses` |
+| L1D_Write_Misses | `L1D_Write_Misses` |
+| L1D_Write_Hit_Rate | `L1D_Write_Hits / L1D_Writes` |
+| L1D_Write_Miss_Rate | `L1D_Write_Misses / L1D_Writes` |
+
+### L2 Cache
+
+| Metric | Formula |
+|--------|---------|
+| L2_Reads | `L1D_Read_Misses + L1I_Misses` |
+| L2_Writes | `L1D_Write_Misses` |
+| L2_Read_Hits | `L2_Read_Hits` |
+| L2_Read_Misses | `L2_Reads - L2_Read_Hits` |
+| L2_Read_Hit_Rate | `L2_Read_Hits / L2_Reads` |
+| L2_Read_Miss_Rate | `L2_Read_Misses / L2_Reads` |
+| L2_Write_Hits | `L2_Write_Hits` |
+| L2_Write_Misses | `L2_Writes - L2_Write_Hits` |
+| L2_Write_Hit_Rate | `L2_Write_Hits / L2_Writes` |
+| L2_Write_Miss_Rate | `L2_Write_Misses / L2_Writes` |
+
+### L3/LLC Cache
+
+| Metric | Formula |
+|--------|---------|
+| L3_Reads | `L2_Read_Misses` |
+| L3_Writes | `L2_Write_Misses` |
+| L3_Read_Hits | `L3_Read_Hits` |
+| L3_Read_Misses | `L3_Reads - L3_Read_Hits` |
+| L3_Read_Hit_Rate | `L3_Read_Hits / L3_Reads` |
+| L3_Read_Miss_Rate | `L3_Read_Misses / L3_Reads` |
+| L3_Write_Hits | `L3_Write_Hits` |
+| L3_Write_Misses | `L3_Writes - L3_Write_Hits` |
+| L3_Write_Hit_Rate | `L3_Write_Hits / L3_Writes` |
+| L3_Write_Miss_Rate | `L3_Write_Misses / L3_Writes` |
+
+### DRAM 
+
+| Metric | Formula |
+|--------|---------|
+| DRAM_Reads | `L3_Read_Misses` |
+| DRAM_Writes | `L3_Write_Misses + Writebacks` |
+| DRAM_Local_Reads | `DRAM_Local_Reads` |
+| DRAM_Remote_Reads | `DRAM_Remote_Reads` |
+| DRAM_Local_Ratio | `DRAM_Local_Reads / DRAM_Reads` |
+| DRAM_Remote_Ratio | `DRAM_Remote_Reads / DRAM_Reads` |
+
 ## License
 
 This profiler integrates [`perf`](https://perf.wiki.kernel.org/), the Linux performance analysis tool developed and maintained as part of the Linux kernel.
