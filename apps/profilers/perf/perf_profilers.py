@@ -9,6 +9,15 @@ CACHE_LINE_SIZE = 64
 # Supported architectures (Intel and AMD only)
 SUPPORTED_ARCHS = ["intel", "amd"]
 
+# Level dependencies - strict filtering (only requested level)
+LEVEL_DEPENDENCIES = {
+    "l1": ["l1"],
+    "l2": ["l2"],
+    "l3": ["l3"],
+    "dram": ["dram"],
+    "all": None,  # All levels
+}
+
 # Formula-first organization: level -> metric -> architecture counters
 # Each metric shows the perf event name for each architecture
 # None means the counter is not available on that architecture
@@ -24,7 +33,7 @@ PERF_FORMULAS = {
         },
         "l1d_stores": {
             "intel": "L1-dcache-stores:u",
-            "amd": "L1-dcache-stores:u",
+            "amd": None,  # Not available on AMD; use l2_request_g1.change_to_x at L2
         },
         "l1i_load_misses": {
             "intel": "L1-icache-load-misses:u",
@@ -42,15 +51,16 @@ PERF_FORMULAS = {
         },
         "l2_rfo_total": {
             "intel": "l2_rqsts.all_rfo:u",
-            "amd": None,
+            # change_to_x = requests for exclusive ownership (store-like)
+            "amd": "l2_request_g1.change_to_x:u",
         },
         "l2_rfo_hits": {
             "intel": "l2_rqsts.rfo_hit:u",
-            "amd": None,
+            "amd": None,  # AMD doesn't split RFO hit/miss
         },
         "l2_rfo_misses": {
             "intel": "l2_rqsts.rfo_miss:u",
-            "amd": None,
+            "amd": None,  # AMD doesn't split RFO hit/miss
         },
         "l2_pf_hit_l3": {
             "intel": None,
@@ -64,41 +74,49 @@ PERF_FORMULAS = {
     "l3": {
         "l3_hits": {
             "intel": "mem_load_retired.l3_hit:u",
-            "amd": None,
+            # AMD: derive from l2_pf_miss_l2_hit_l3 (prefetch that hit L3)
+            "amd": "l2_pf_miss_l2_hit_l3:u",
         },
         "l3_misses": {
             "intel": "mem_load_retired.l3_miss:u",
-            "amd": "l3_comb_clstr_state.request_miss:u",
+            # AMD: l3_comb_clstr_state.request_miss not available; use l2_pf_miss_l2_l3
+            "amd": "l2_pf_miss_l2_l3:u",
         },
         "llc_loads": {
             "intel": "LLC-loads:u",
-            "amd": "LLC-loads:u",
+            # AMD: L2 misses go to L3, so use all_l2_cache_misses
+            "amd": "all_l2_cache_misses:u",
         },
         "llc_load_misses": {
             "intel": "LLC-load-misses:u",
-            "amd": "LLC-load-misses:u",
+            # AMD: L3 misses = fills from memory
+            "amd": "l1_data_cache_fills_from_memory:u",
         },
         "llc_stores": {
-            "intel": "LLC-stores:u",
-            "amd": "LLC-stores:u",
+            "intel": None,  # Not available on Intel
+            "amd": None,    # Not directly available on AMD
         },
     },
     "dram": {
+        # DRAM Reads (fills from memory)
         "dram_local": {
             "intel": "mem_load_l3_miss_retired.local_dram:u",
-            "amd": "ls_dmnd_fills_from_sys.mem_io_local:u",
+            # AMD: fills from local memory
+            "amd": "l1_data_cache_fills_from_memory:u",
         },
         "dram_remote": {
             "intel": "mem_load_l3_miss_retired.remote_dram:u",
-            "amd": "ls_dmnd_fills_from_sys.mem_io_remote:u",
+            # AMD: fills from remote node
+            "amd": "l1_data_cache_fills_from_remote_node:u",
         },
-        "dram_local_any": {
+        # DRAM Writes
+        "dram_write_local": {
             "intel": None,
-            "amd": "ls_any_fills_from_sys.mem_io_local:u",
+            "amd": None,  # Not directly measurable
         },
-        "dram_remote_any": {
+        "dram_write_remote": {
             "intel": None,
-            "amd": "ls_any_fills_from_sys.mem_io_remote:u",
+            "amd": None,  # Not directly measurable
         },
     },
     "interconnect": {
@@ -138,13 +156,13 @@ class PerfProfilers(FrontendInterface):
         self.active_events = self.get_events_for_arch()
 
     def get_events_for_arch(self):
-        """Get the list of events based on architecture.
-
-        Iterates through PERF_FORMULAS and collects all events
-        available for the specified architecture.
-        """
+        """Get events based on architecture and requested level."""
         events = []
+        required_levels = LEVEL_DEPENDENCIES.get(self.level)
+
         for level, metrics in PERF_FORMULAS.items():
+            if required_levels is not None and level not in required_levels:
+                continue
             for metric_key, arch_counters in metrics.items():
                 event_name = arch_counters.get(self.arch)
                 if event_name is not None:
@@ -272,7 +290,7 @@ class PerfProfilers(FrontendInterface):
             print(f"Output written to file {report}.perf-rep")
 
     def extract_metrics(self, report_file=None, **kwargs):
-        """Extract performance metrics from perf output."""
+        """Extract raw performance metrics from perf output."""
         toparse = ""
         if self.action == "extract_metrics":
             with open(report_file) as file:
@@ -292,237 +310,25 @@ class PerfProfilers(FrontendInterface):
             time_match = re.search(r"([\d.]+)\s+seconds time elapsed", toparse)
             self.data["time_elapsed"] = float(time_match.group(1)) if time_match else 0.0
 
-            self.compute_derived_metrics()
+            # Store the level for PerfConfig to use
+            self.data["level"] = self.level
+
+            # NO compute_derived_metrics() call - let PerfConfig handle it
             return self.data
 
         except AttributeError as e:
             print(f"Failed to extract data: {e}")
             raise
 
-    def compute_derived_metrics(self):
-        """Compute derived metrics based on the memory hierarchy cascade model."""
-        data = self.data
-
-        # L1 Data Cache
-        l1d_loads = data.get("l1d_loads", 0)
-        l1d_load_misses = data.get("l1d_load_misses", 0)
-        l1d_stores = data.get("l1d_stores", 0)
-
-        data["l1d_total_reads"] = l1d_loads
-        data["l1d_total_writes"] = l1d_stores
-        data["l1d_read_hits"] = l1d_loads - l1d_load_misses
-        data["l1d_read_hit_rate"] = (l1d_loads - l1d_load_misses) / l1d_loads if l1d_loads else 0
-        data["l1d_read_miss_rate"] = l1d_load_misses / l1d_loads if l1d_loads else 0
-
-        # L2 Cache
-        l1i_load_misses = data.get("l1i_load_misses", 0)
-        data["l2_total_reads"] = l1d_load_misses + l1i_load_misses
-
-        l2_load_hits = data.get("l2_load_hits", 0)
-        l2_load_misses = data.get("l2_load_misses", 0)
-
-        if l2_load_hits > 0 or l2_load_misses > 0:
-            data["l2_read_hits"] = l2_load_hits
-            data["l2_read_misses"] = l2_load_misses
-            l2_load_total = l2_load_hits + l2_load_misses
-            data["l2_read_hit_rate"] = l2_load_hits / l2_load_total if l2_load_total else 0
-            data["l2_read_miss_rate"] = l2_load_misses / l2_load_total if l2_load_total else 0
-        else:
-            data["l2_read_hits"] = 0
-            data["l2_read_misses"] = 0
-            data["l2_read_hit_rate"] = 0.0
-            data["l2_read_miss_rate"] = 0.0
-
-        # L2 Stores via RFO
-        l2_rfo_total = data.get("l2_rfo_total", 0)
-        l2_rfo_hits = data.get("l2_rfo_hits", 0)
-        l2_rfo_misses = data.get("l2_rfo_misses", 0)
-
-        data["l2_total_writes"] = l2_rfo_total
-        data["l1d_store_misses"] = l2_rfo_total
-
-        if l2_rfo_total > 0:
-            data["l2_write_hits"] = l2_rfo_hits
-            data["l2_write_misses"] = l2_rfo_misses
-            data["l2_write_hit_rate"] = l2_rfo_hits / l2_rfo_total if l2_rfo_total else 0
-            data["l2_write_miss_rate"] = l2_rfo_misses / l2_rfo_total if l2_rfo_total else 0
-        else:
-            data["l2_write_hits"] = 0
-            data["l2_write_misses"] = 0
-            data["l2_write_hit_rate"] = 0.0
-            data["l2_write_miss_rate"] = 0.0
-
-        # L3/LLC Cache
-        llc_loads = data.get("llc_loads", 0)
-        llc_load_misses = data.get("llc_load_misses", 0)
-        llc_stores = data.get("llc_stores", 0)
-
-        if l2_load_misses > 0:
-            data["l3_total_reads"] = l2_load_misses
-        else:
-            data["l3_total_reads"] = llc_loads
-
-        if l2_rfo_misses > 0:
-            data["l3_total_writes"] = l2_rfo_misses
-        else:
-            data["l3_total_writes"] = llc_stores
-
-        l3_hits = data.get("l3_hits", 0)
-        l3_misses = data.get("l3_misses", 0)
-
-        if l3_hits > 0 or l3_misses > 0:
-            data["l3_read_hits"] = l3_hits
-            data["l3_read_misses"] = l3_misses
-            l3_total = l3_hits + l3_misses
-            data["l3_read_hit_rate"] = l3_hits / l3_total if l3_total else 0
-            data["l3_read_miss_rate"] = l3_misses / l3_total if l3_total else 0
-        elif llc_loads > 0:
-            data["l3_read_hits"] = llc_loads - llc_load_misses
-            data["l3_read_misses"] = llc_load_misses
-            data["l3_read_hit_rate"] = (llc_loads - llc_load_misses) / llc_loads if llc_loads else 0
-            data["l3_read_miss_rate"] = llc_load_misses / llc_loads if llc_loads else 0
-        else:
-            data["l3_read_hits"] = 0
-            data["l3_read_misses"] = 0
-            data["l3_read_hit_rate"] = 0.0
-            data["l3_read_miss_rate"] = 0.0
-
-        # DRAM
-        if l3_misses > 0:
-            data["dram_total_reads"] = l3_misses
-        else:
-            data["dram_total_reads"] = llc_load_misses
-
-        dram_local = data.get("dram_local", 0)
-        dram_remote = data.get("dram_remote", 0)
-        data["dram_local_reads"] = dram_local
-        data["dram_remote_reads"] = dram_remote
-
-        if dram_local > 0 or dram_remote > 0:
-            total_dram = dram_local + dram_remote
-            data["dram_local_ratio"] = dram_local / total_dram if total_dram else 0
-            data["dram_remote_ratio"] = dram_remote / total_dram if total_dram else 0
-
-        # Bandwidth
-        l1_to_l2_load_bytes = l1d_load_misses * CACHE_LINE_SIZE
-        l1_to_l2_store_bytes = l2_rfo_total * CACHE_LINE_SIZE
-        data["l1_to_l2_bytes"] = l1_to_l2_load_bytes + l1_to_l2_store_bytes
-        data["l1_to_l2_read_bytes"] = l1_to_l2_load_bytes
-        data["l1_to_l2_write_bytes"] = l1_to_l2_store_bytes
-
-        l2_to_l3_load_bytes = l2_load_misses * CACHE_LINE_SIZE if l2_load_misses > 0 else 0
-        l2_to_l3_store_bytes = l2_rfo_misses * CACHE_LINE_SIZE if l2_rfo_misses > 0 else 0
-        data["l2_to_l3_bytes"] = l2_to_l3_load_bytes + l2_to_l3_store_bytes
-        data["l2_to_l3_read_bytes"] = l2_to_l3_load_bytes
-        data["l2_to_l3_write_bytes"] = l2_to_l3_store_bytes
-
-        data["l3_to_dram_bytes"] = data["dram_total_reads"] * CACHE_LINE_SIZE
-
-        # General metrics
-        cycles = data.get("cycles", 0)
-        instructions = data.get("instructions", 0)
-        time_elapsed = data.get("time_elapsed", 0.0)
-
-        data["ipc"] = instructions / cycles if cycles else 0
-        data["cpi"] = cycles / instructions if instructions else 0
-        data["l1d_mpki"] = (l1d_load_misses / instructions * 1000) if instructions else 0
-        data["llc_mpki"] = (llc_load_misses / instructions * 1000) if instructions else 0
-
-        if time_elapsed > 0:
-            data["l1_to_l2_bandwidth"] = data["l1_to_l2_bytes"] / time_elapsed
-            data["l3_to_dram_bandwidth"] = data["l3_to_dram_bytes"] / time_elapsed
-
-    def get_level_summary(self, level):
-        """Get a summary of metrics for a specific memory level."""
-        level = level.lower()
-        summary = {}
-
-        if level == "l1" or level == "l1d":
-            summary = {
-                "total_reads": self.data.get("l1d_total_reads", 0),
-                "total_writes": self.data.get("l1d_total_writes", 0),
-                "read_hits": self.data.get("l1d_read_hits", 0),
-                "read_misses": self.data.get("l1d_load_misses", 0),
-                "hit_rate": self.data.get("l1d_read_hit_rate", 0.0),
-                "miss_rate": self.data.get("l1d_read_miss_rate", 0.0),
-                "mpki": self.data.get("l1d_mpki", 0.0),
-            }
-        elif level == "l2":
-            summary = {
-                "total_reads": self.data.get("l2_total_reads", 0),
-                "total_writes": self.data.get("l2_total_writes", 0),
-                "read_hits": self.data.get("l2_read_hits", 0),
-                "read_misses": self.data.get("l2_read_misses", 0),
-                "hit_rate": self.data.get("l2_read_hit_rate", 0.0),
-                "miss_rate": self.data.get("l2_read_miss_rate", 0.0),
-            }
-        elif level == "l3" or level == "llc":
-            summary = {
-                "total_reads": self.data.get("l3_total_reads", 0),
-                "total_writes": self.data.get("l3_total_writes", 0),
-                "read_hits": self.data.get("l3_read_hits", 0),
-                "read_misses": self.data.get("l3_read_misses", 0),
-                "hit_rate": self.data.get("l3_read_hit_rate", 0.0),
-                "miss_rate": self.data.get("l3_read_miss_rate", 0.0),
-                "mpki": self.data.get("llc_mpki", 0.0),
-            }
-        elif level == "dram" or level == "memory":
-            summary = {
-                "total_reads": self.data.get("dram_total_reads", 0),
-                "local_reads": self.data.get("dram_local_reads", 0),
-                "remote_reads": self.data.get("dram_remote_reads", 0),
-                "local_ratio": self.data.get("dram_local_ratio", 0.0),
-                "bandwidth_bytes": self.data.get("l3_to_dram_bytes", 0),
-            }
-
-        return summary
-
     def print_summary(self):
-        """Print a formatted summary of all memory hierarchy metrics."""
-        print("\n" + "=" * 70)
-        print("MEMORY HIERARCHY SUMMARY")
-        print("=" * 70)
-
-        print(f"\nGeneral:")
-        print(f"  Instructions:     {self.data.get('instructions', 0):,}")
-        print(f"  Cycles:           {self.data.get('cycles', 0):,}")
-        print(f"  IPC:              {self.data.get('ipc', 0):.3f}")
-        print(f"  Time Elapsed:     {self.data.get('time_elapsed', 0):.3f}s")
-
-        print(f"\nL1 Data Cache:")
-        print(f"  Total Reads:      {self.data.get('l1d_total_reads', 0):,}")
-        print(f"  Total Writes:     {self.data.get('l1d_total_writes', 0):,}")
-        print(f"  Read Hits:        {self.data.get('l1d_read_hits', 0):,}")
-        print(f"  Read Misses:      {self.data.get('l1d_load_misses', 0):,}")
-        print(f"  Hit Rate:         {self.data.get('l1d_read_hit_rate', 0) * 100:.2f}%")
-        print(f"  MPKI:             {self.data.get('l1d_mpki', 0):.2f}")
-
-        print(f"\nL2 Cache:")
-        print(f"  Total Reads:      {self.data.get('l2_total_reads', 0):,}")
-        print(f"  Total Writes:     {self.data.get('l2_total_writes', 0):,}")
-        if self.data.get('l2_read_hits', 0) > 0 or self.data.get('l2_read_misses', 0) > 0:
-            print(f"  Read Hits:        {self.data.get('l2_read_hits', 0):,}")
-            print(f"  Read Misses:      {self.data.get('l2_read_misses', 0):,}")
-            print(f"  Hit Rate:         {self.data.get('l2_read_hit_rate', 0) * 100:.2f}%")
-
-        print(f"\nL3/LLC Cache:")
-        print(f"  Total Reads:      {self.data.get('l3_total_reads', 0):,}")
-        print(f"  Total Writes:     {self.data.get('l3_total_writes', 0):,}")
-        print(f"  Read Hits:        {self.data.get('l3_read_hits', 0):,}")
-        print(f"  Read Misses:      {self.data.get('l3_read_misses', 0):,}")
-        print(f"  Hit Rate:         {self.data.get('l3_read_hit_rate', 0) * 100:.2f}%")
-
-        print(f"\nDRAM:")
-        print(f"  Total Reads:      {self.data.get('dram_total_reads', 0):,}")
-        if self.data.get('dram_local_reads', 0) > 0 or self.data.get('dram_remote_reads', 0) > 0:
-            print(f"  Local Reads:      {self.data.get('dram_local_reads', 0):,}")
-            print(f"  Remote Reads:     {self.data.get('dram_remote_reads', 0):,}")
-            print(f"  Local Ratio:      {self.data.get('dram_local_ratio', 0) * 100:.2f}%")
-
-        print(f"\nBandwidth Estimates:")
-        print(f"  L1 -> L2:         {self.data.get('l1_to_l2_bytes', 0) / 1e6:.2f} MB")
-        print(f"  L2 -> L3:         {self.data.get('l2_to_l3_bytes', 0) / 1e6:.2f} MB")
-        print(f"  L3 -> DRAM:       {self.data.get('l3_to_dram_bytes', 0) / 1e6:.2f} MB")
+        """Print raw counters collected for the requested level."""
+        print(f"\n{'='*50}")
+        print(f"RAW PERF COUNTERS (level={self.level}, arch={self.arch})")
+        print(f"{'='*50}")
+        for key, value in self.data.items():
+            if key not in ["level", "time_elapsed"]:
+                print(f"  {key}: {value:,}")
+        print(f"  time_elapsed: {self.data.get('time_elapsed', 0):.6f}s")
         
     @classmethod
     def required_profiling_args(cls):
