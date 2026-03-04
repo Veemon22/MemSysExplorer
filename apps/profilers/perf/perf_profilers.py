@@ -85,7 +85,7 @@ PERF_FORMULAS = {
         "llc_loads": {
             "intel": "LLC-loads:u",
             # AMD: L2 misses go to L3, so use all_l2_cache_misses
-            "amd": "all_l2_cache_misses:u",
+            "amd": None,
         },
         "llc_load_misses": {
             "intel": "LLC-load-misses:u",
@@ -360,4 +360,3 @@ class PerfProfilers(FrontendInterface):
             return ["report_file"]
         else:
             return []
-
