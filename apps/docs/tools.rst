@@ -616,8 +616,8 @@ The protobuf parsers (``trace_parser.py`` and ``timeseries_parser.py``) require 
 
 .. code-block:: bash
 
-   cd profilers/common
-   make
+   cd apps
+   make common
 
 This generates ``memory_trace_pb2.py`` and ``timeseries_metrics_pb2.py`` in the ``profilers/common/proto/`` directory.
 
