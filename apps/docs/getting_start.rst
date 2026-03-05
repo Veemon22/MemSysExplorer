@@ -251,7 +251,7 @@ Two key output files are generated during each profiling session:
 Memory Statistics Trace
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-This JSON file captures the high-level memory activity observed during the execution.
+This JSON file is generated with the `extract_metrics` action and captures the high-level memory activity observed during the execution.
 
 **File Name Format:**  
 A unique identifier (`_<id>`) is automatically appended if a file with the same name already exists to avoid overwriting.
