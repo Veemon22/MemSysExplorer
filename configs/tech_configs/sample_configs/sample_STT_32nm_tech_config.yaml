@@ -1,19 +1,19 @@
-MemoryCellInputFile: configs/tech_configs/sample_cells/sample_FeFET_cell.yaml
+MemoryCellInputFile: configs/tech_configs/sample_cells/sample_STTRAM_cell.yaml
 
 ProcessNode: 32
 DeviceRoadmap: LOP
 
 CacheAccessMode: Normal
-Associativity: 8 # For cache only
+Associativity: 8  # For cache only
 
-OutputDirectory: 
-OutputFilePrefix: sample_FeFET_32nm_result
+OutputDirectory:
+OutputFilePrefix: test
 EnablePruning: Yes
 
 LocalWire:
   Type: LocalAggressive
   RepeaterType: RepeatedNone
-  LowSwing: No
+  UseLowSwing: No
 
 GlobalWire:
   Type: GlobalAggressive
@@ -24,8 +24,7 @@ Routing: H-tree
 
 InternalSensing: true
 
-Temperature: 370 # Kelvin
-RetentionTime: 40 # microseconds
+Temperature: 370  # Kelvin
+RetentionTime: 40  # microseconds
 
 BufferDesignOptimization: latency
-

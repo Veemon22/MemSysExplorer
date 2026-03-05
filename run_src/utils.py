@@ -44,6 +44,8 @@ def parse_array_char_output(yaml_file_path):
             data["capacity"] = f"{result['Capacity'].get('Value','N/A')}{result['Capacity'].get('Unit','')}"
 
             cache = result["CacheDesign"]
+
+            data["optimization_target"] = cache.get("OptimizationTarget", "unknown")
             
             data["total_area"] = cache['Area']['Total_mm2']
             data["cache_hit_latency"] = cache['Timing']['CacheHitLatency_ns']
@@ -80,6 +82,7 @@ def parse_array_char_output(yaml_file_path):
             # Data About Tech
             data["mem_cell_type"] = result['MemoryCell'].get('MemoryCellType', 'unknown')
             data["capacity"] = f"{result['Capacity'].get('Value','N/A')}{result['Capacity'].get('Unit','')}"
+            data["optimization_target"] = result.get("OptimizationTarget", "unknown")
 
             # Non-cache design
             if "Results" in result:
@@ -180,7 +183,7 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                 sys_cfg.get('DesignTarget', 'unknown'),
                 tech_data.get('capacity', 'N/A'),
                 sys_cfg.get('WordWidth', 'N/A'),
-                sys_cfg.get('OptimizationTarget', 'N/A'),
+                tech_data.get('optimization_target', 'N/A'),
                 model_result.get('total_reads', 0),
                 model_result.get('total_writes', 0),
                 model_result.get('total_hits', 0),
@@ -213,7 +216,7 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                 sys_cfg.get('DesignTarget', 'unknown'),
                 tech_data.get('capacity', 'N/A'),
                 sys_cfg.get('WordWidth', 'N/A'),
-                sys_cfg.get('OptimizationTarget', 'N/A'),
+                tech_data.get('optimization_target', 'N/A'),
                 model_result.get('total_reads', 0),
                 model_result.get('total_writes', 0),
                 model_result.get('total_latency_ms', 0),

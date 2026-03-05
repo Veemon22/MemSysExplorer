@@ -1,10 +1,15 @@
 system:
   DesignTarget: cache
+
   Capacity: 
     Value: 128
     Unit: KB
+  
   WordWidth: 128 # bits
-  OptimizationTarget: WriteEDP
+  
+  OptimizationTarget: 
+    - WriteEDP
+    - ReadLatency
 
 apps:
   run: new

@@ -1,13 +1,13 @@
-MemoryCellInputFile: sample_cells/sample_CTT_cell.yaml
+MemoryCellInputFile: configs/tech_configs/sample_cells/sample_PCRAM_cell.yaml
 
-ProcessNode: 32
-DeviceRoadmap: LOP
+ProcessNode: 130
+DeviceRoadmap: HP
 
 CacheAccessMode: Normal
 Associativity: 8  # For cache only
 
 OutputDirectory: 
-OutputFilePrefix: sample_CTT_32nm_result
+OutputFilePrefix: sample_PCRAM_130nm_result
 EnablePruning: Yes
 
 LocalWire:

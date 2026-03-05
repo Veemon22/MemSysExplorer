@@ -119,43 +119,52 @@ def check_inputs(config):
 
     # Check if data in existing tech results matches sys config requirements
     if tech_cfg['run'] == "existing":
-        if sys_cfg['DesignTarget'] == "cache":
-            result_path = tech_cfg['array_characterization_result_path']
-            if os.path.isdir(result_path):
-                result_files = [
-                    os.path.join(result_path, f) for f in os.listdir(result_path)
-                    if f.endswith('.yaml') or f.endswith('.yml')
-                ]
-            else:
-                result_files = [result_path]
+        result_path = tech_cfg['array_characterization_result_path']
+        if os.path.isdir(result_path):
+            result_files = [
+                os.path.join(result_path, f) for f in os.listdir(result_path)
+                if f.endswith('.yaml') or f.endswith('.yml')
+            ]
+        else:
+            result_files = [result_path]
 
-            # Build a set of capacity labels from sys_cfg
-            capacity_list = sys_cfg.get('Capacity', [])
-            if not isinstance(capacity_list, list):
-                capacity_list = [capacity_list]
-            expected_capacities = {f"{cap['Value']}{cap['Unit']}" for cap in capacity_list}
+        # Build expected sets from sys_cfg
+        capacity_list = sys_cfg.get('Capacity', [])
+        if not isinstance(capacity_list, list):
+            capacity_list = [capacity_list]
+        expected_capacities = {f"{cap['Value']}{cap['Unit']}" for cap in capacity_list}
 
-            for path in result_files:
-                with open(path, 'r') as f:
-                    tech_result = yaml.load(f, Loader=yaml.FullLoader)
+        opt_targets = sys_cfg.get('OptimizationTarget', [])
+        if not isinstance(opt_targets, list):
+            opt_targets = [opt_targets]
+        expected_opt_targets = set(opt_targets)
 
-                # OptimizationTarget check
-                if 'OptimizationTarget' in sys_cfg and 'CacheDesign' in tech_result:
+        for path in result_files:
+            with open(path, 'r') as f:
+                tech_result = yaml.load(f, Loader=yaml.FullLoader)
+
+            # OptimizationTarget check - works for both cache and RAM
+            if 'OptimizationTarget' in sys_cfg:
+                if 'CacheDesign' in tech_result:
                     opt_in_result = tech_result['CacheDesign'].get('OptimizationTarget')
-                    if opt_in_result and sys_cfg['OptimizationTarget'] != opt_in_result:
-                        print(f"Warning: OptimizationTarget mismatch in {path}")
-                        sys.exit(1)
-
-                # Capacity check
-                if 'Capacity' in tech_result:
-                    cap = tech_result['Capacity']
-                    result_cap_label = f"{cap.get('Value', 'N/A')}{cap.get('Unit', '')}"
-                    if result_cap_label not in expected_capacities:
-                        print(f"Warning: Capacity mismatch in {path}. "
-                              f"Result has {result_cap_label} but sys config expects one of {expected_capacities}")
-                        sys.exit(1)
                 else:
-                    print(f"Warning: No Capacity field found in {path}. ")
+                    opt_in_result = tech_result.get('OptimizationTarget')
+                if opt_in_result and opt_in_result not in expected_opt_targets:
+                    print(f"Warning: OptimizationTarget mismatch in {path}. "
+                          f"Result has {opt_in_result} but sys config expects one of {expected_opt_targets}")
+                    sys.exit(1)
+
+            # Capacity check
+            if 'Capacity' in tech_result:
+                cap = tech_result['Capacity']
+                result_cap_label = f"{cap.get('Value', 'N/A')}{cap.get('Unit', '')}"
+                if result_cap_label not in expected_capacities:
+                    print(f"Warning: Capacity mismatch in {path}. "
+                          f"Result has {result_cap_label} but sys config expects one of {expected_capacities}")
+                    sys.exit(1)
+            else:
+                print(f"Warning: No Capacity field found in {path}. "
+                      f"Was this result generated with an older version?")
 
     #TODO: add word width vs. read/write size logic checks
 
@@ -282,6 +291,11 @@ def main():
         if not isinstance(capacity_list, list):
             capacity_list = [capacity_list]
 
+        # Get all optimization targets
+        opt_target_list = sys_cfg.get('OptimizationTarget', [])
+        if not isinstance(opt_target_list, list):
+            opt_target_list = [opt_target_list]
+
         tech_results = []
 
         for tech_config_path in tech_config_paths:
@@ -289,33 +303,40 @@ def main():
                 single_tech_cfg = yaml.load(f, Loader=yaml.FullLoader)
 
             for cap in capacity_list:
-                cap_label = f"{cap['Value']}{cap['Unit']}"
+                for opt_target in opt_target_list:
+                    cap_label = f"{cap['Value']}{cap['Unit']}"
 
-                arraychar_cfg_copy = single_tech_cfg.copy()
-                arraychar_cfg_copy.update(sys_cfg)
-                arraychar_cfg_copy.update({k: v for k, v in tech_cfg.items()
-                                           if k not in ('array_characterization_config', 'run')})
-                arraychar_cfg_copy['Capacity'] = cap
-                arraychar_cfg_copy['OutputDirectory'] = tech_output_dir
+                    arraychar_cfg_copy = single_tech_cfg.copy()
+                    arraychar_cfg_copy.update(sys_cfg)
+                    arraychar_cfg_copy.update({k: v for k, v in tech_cfg.items()
+                                            if k not in ('array_characterization_config', 'run')})
+                    arraychar_cfg_copy['Capacity'] = cap
+                    arraychar_cfg_copy['OptimizationTarget'] = opt_target
+                    arraychar_cfg_copy['OutputDirectory'] = tech_output_dir
 
-                 # Use existing prefix if set, otherwise fall back to tech config filename
-                existing_prefix = arraychar_cfg_copy.get('OutputFilePrefix', '').strip()
-                if existing_prefix:
-                    arraychar_cfg_copy['OutputFilePrefix'] = f"{existing_prefix}_{cap_label}"
-                else:
-                    tech_label = os.path.splitext(os.path.basename(tech_config_path))[0]
-                    arraychar_cfg_copy['OutputFilePrefix'] = f"{tech_label}_{cap_label}"
+                    if 'MemoryCellInputFile' in single_tech_cfg:
+                        mem_cell_path = arraychar_cfg_copy['MemoryCellInputFile']
+                        if not os.path.isabs(mem_cell_path):
+                            arraychar_cfg_copy['MemoryCellInputFile'] = os.path.join(original_dir, mem_cell_path)
 
-                print(f"\nRunning array characterization: {os.path.basename(tech_config_path)} @ {cap_label}")
+                    # Use existing prefix if set, otherwise fall back to tech config filename
+                    existing_prefix = arraychar_cfg_copy.get('OutputFilePrefix', '').strip()
+                    if existing_prefix:
+                        arraychar_cfg_copy['OutputFilePrefix'] = f"{existing_prefix}_{cap_label}_{opt_target}"
+                    else:
+                        tech_label = os.path.splitext(os.path.basename(tech_config_path))[0]
+                        arraychar_cfg_copy['OutputFilePrefix'] = f"{tech_label}_{cap_label}_{opt_target}"
 
-                tech_yaml_str = yaml.dump(arraychar_cfg_copy)
-                with tempfile.NamedTemporaryFile(mode='w+', suffix='.yaml', delete=False) as tech_yaml:
-                    tech_yaml.write(tech_yaml_str)
-                    tech_yaml_path = tech_yaml.name
+                    print(f"\nRunning array characterization: {os.path.basename(tech_config_path)} @ {cap_label} optimized for {opt_target}")
 
-                result = run_array_characterization(tech_yaml_path, Tech_Dir)
-                tech_results.append(result)
-                os.remove(tech_yaml_path)
+                    tech_yaml_str = yaml.dump(arraychar_cfg_copy)
+                    with tempfile.NamedTemporaryFile(mode='w+', suffix='.yaml', delete=False) as tech_yaml:
+                        tech_yaml.write(tech_yaml_str)
+                        tech_yaml_path = tech_yaml.name
+
+                    result = run_array_characterization(tech_yaml_path, Tech_Dir)
+                    tech_results.append(result)
+                    os.remove(tech_yaml_path)
 
     else:
         result_path = tech_cfg['array_characterization_result_path']

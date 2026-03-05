@@ -17,7 +17,7 @@
     "Core(s) per socket": "6",
     "Socket(s)": "1",
     "Stepping": "0",
-    "CPU(s) scaling MHz": "86%",
+    "CPU(s) scaling MHz": "16%",
     "CPU max MHz": "4546.0000",
     "CPU min MHz": "400.0000",
     "BogoMIPS": "3992.59",
@@ -70,8 +70,8 @@
     "os_version": "6.8.0-100-generic",
     "architecture": "x86_64",
     "working_directory": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/results/sniper_test_run_1/apps_output",
-    "process_id": 214229,
-    "timestamp_ns": 1772493810927509288,
+    "process_id": 295670,
+    "timestamp_ns": 1772680435048374699,
     "environment_variables": {
       "SHELL": "/bin/bash",
       "SESSION_MANAGER": "local/veemon22-HP-255-15-6-inch-G10-Notebook-PC:@/tmp/.ICE-unix/1356,unix/veemon22-HP-255-15-6-inch-G10-Notebook-PC:/tmp/.ICE-unix/1356",
@@ -80,7 +80,7 @@
       "XDG_CONFIG_DIRS": "/etc/xdg/xdg-cinnamon:/etc/xdg",
       "VSCODE_DEBUGPY_ADAPTER_ENDPOINTS": "/home/veemon22/.vscode/extensions/ms-python.debugpy-2025.18.0-linux-x64/.noConfigDebugAdapterEndpoints/endpoint-011c7ef1ee6ba91a.txt",
       "XDG_SESSION_PATH": "/org/freedesktop/DisplayManager/Session0",
-      "TERM_PROGRAM_VERSION": "1.109.5",
+      "TERM_PROGRAM_VERSION": "1.110.0",
       "GNOME_DESKTOP_SESSION_ID": "this-is-deprecated",
       "GTK_IM_MODULE": "ibus",
       "QT_IM_MODULES": "wayland;ibus",
@@ -137,11 +137,10 @@
       "PATH": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/.venv/bin:/home/veemon22/.config/Code/User/globalStorage/github.copilot-chat/debugCommand:/home/veemon22/.config/Code/User/globalStorage/github.copilot-chat/copilotCli:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/veemon22/.vscode/extensions/ms-python.debugpy-2025.18.0-linux-x64/bundled/scripts/noConfigScripts",
       "GDMSESSION": "cinnamon",
       "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
-      "GIO_LAUNCHED_DESKTOP_FILE_PID": "198460",
+      "GIO_LAUNCHED_DESKTOP_FILE_PID": "278988",
       "GIO_LAUNCHED_DESKTOP_FILE": "/usr/share/applications/code.desktop",
       "TERM_PROGRAM": "vscode",
-      "_": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/.venv/bin/python3",
-      "OLDPWD": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/tech"
+      "_": "/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/.venv/bin/python3"
     }
   },
   "build_metadata": {
@@ -360,15 +359,15 @@
       "version_requirements": {},
       "compiler_requirements": {},
       "main_targets": [
-        "@if [ -f \"$(SNIPERSIM_PATCH)\" ]; then  echo \"Applying patch to SniperSim...\";  patch -p1 -d $(SNIPERSIM_DIR) < $(SNIPERSIM_PATCH) || echo \"Warning",
-        "checkout_version",
-        "patch -p1 -d $(SNIPERSIM_DIR) < $(SNIPERSIM_PATCH) || echo \"Warning",
         "clean",
+        "all",
         "build_snipersim",
+        "@if [ -f \"$(SNIPERSIM_PATCH)\" ]; then  echo \"Applying patch to SniperSim...\";  patch -p1 -d $(SNIPERSIM_DIR) < $(SNIPERSIM_PATCH) || echo \"Warning",
+        "patch -p1 -d $(SNIPERSIM_DIR) < $(SNIPERSIM_PATCH) || echo \"Warning",
+        "checkout_version",
         "install_snipersim",
-        ".PHONY",
         "echo \"Applying patch to SniperSim...\";  patch -p1 -d $(SNIPERSIM_DIR) < $(SNIPERSIM_PATCH) || echo \"Warning",
-        "all"
+        ".PHONY"
       ],
       "dependencies": []
     }
@@ -818,7 +817,7 @@
       "restart_apps": "\"false\"",
       "stop_with_first_app": "\"false\"",
       "timeout": "360",
-      "trace_prefix": "\"/tmp/tmpbah6_s29/run_benchmarks\""
+      "trace_prefix": "\"/tmp/tmporev6ibc/run_benchmarks\""
     }
   }
 }
