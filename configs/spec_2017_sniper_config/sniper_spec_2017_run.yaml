@@ -5,8 +5,18 @@ system:
       Unit: MB
     - Value: 16
       Unit: MB
+    - Value: 32
+      Unit: MB
+    - Value: 64
+      Unit: MB
   WordWidth: 128 # bits
-  OptimizationTarget: WriteEDP
+  OptimizationTarget: 
+    - WriteEDP
+    - ReadLatency
+    - WriteLatency
+    - ReadEDP
+    - ReadDynamicEnergy
+    - WriteDynamicEnergy
 
 apps:
   run: existing
@@ -16,5 +26,5 @@ apps:
 
 
 tech:
-  run: existing
-  array_characterization_result_path: configs/spec_2017_sniper_config/FeFet_data
+  run: new
+  array_characterization_config: configs/tech_configs/sample_configs
