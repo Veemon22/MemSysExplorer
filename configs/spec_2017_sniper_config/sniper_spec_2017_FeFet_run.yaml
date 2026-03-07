@@ -5,10 +5,6 @@ system:
       Unit: MB
     - Value: 16
       Unit: MB
-    - Value: 32
-      Unit: MB
-    - Value: 64
-      Unit: MB
   WordWidth: 128 # bits
   OptimizationTarget: 
     - WriteEDP
@@ -27,4 +23,4 @@ apps:
 
 tech:
   run: new
-  array_characterization_config: configs/tech_configs/sample_configs
+  array_characterization_config: configs/tech_configs/sample_configs/sample_FeFet_32nm_tech_config.yaml

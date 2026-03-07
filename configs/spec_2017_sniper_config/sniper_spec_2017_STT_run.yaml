@@ -1,0 +1,26 @@
+system:
+  DesignTarget: cache
+  Capacity: 
+    - Value: 8
+      Unit: MB
+    - Value: 16
+      Unit: MB
+  WordWidth: 128 # bits
+  OptimizationTarget: 
+    - WriteEDP
+    - ReadLatency
+    - WriteLatency
+    - ReadEDP
+    - ReadDynamicEnergy
+    - WriteDynamicEnergy
+
+apps:
+  run: existing
+  profiler: sniper
+  multithread: false
+  patternconfig_path: configs/spec_2017_sniper_config/pattern_configs
+
+
+tech:
+  run: new
+  array_characterization_config: configs/tech_configs/sample_configs/sample_STT_32nm_tech_config.yaml
