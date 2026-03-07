@@ -1,0 +1,204 @@
+MemoryCell:
+  MemoryCellType: MRAM (Magnetoresistive)
+  CellArea_F2: 54
+  CellArea_um2: 0.055296
+  AspectRatio: 0.54
+  R_on_KOhm: 3
+  R_off_KOhm: 6
+  ReadMode: Current-Sensing
+  ReadVoltage_V: 0.25
+  ResetMode: Current
+  ResetVoltage_V: 0
+  ResetCurrent_uA: 80
+  ResetPulse_s: 1e-17
+  SetMode: Current
+  SetVoltage_V: 0
+  SetCurrent_uA: 80
+  SetPulse_s: 1e-17
+  AccessType: CMOS
+CacheDesign:
+  AccessMode: Normal
+  DesignTarget: Cache
+  OptimizationTarget: ReadLatency
+  Area:
+    Total_mm2: 13.396450958335512
+    DataArray_mm2: 10.39253890267557
+    TagArray_mm2: 3.003912055659942
+  Timing:
+    CacheHitLatency_ns: 6.246508984894437
+    CacheMissLatency_ns: 3.018984041776758
+    CacheWriteLatency_ns: 12.511519750853138
+    Reset:
+      PulseDuration_ns: 10
+    Set:
+      PulseDuration_ns: 10
+  Power:
+    CacheHitDynamicEnergy_nJ: 0.36194398123478133
+    CacheMissDynamicEnergy_nJ: 0.36194398123478133
+    CacheWriteDynamicEnergy_nJ: 0.28908391469603256
+    CacheTotalLeakagePower_mW: 61.14326105242843
+    CacheDataArrayLeakagePower_mW: 36.5326658192795
+    CacheTagArrayLeakagePower_mW: 24.610595233148924
+Capacity:
+  Value: 16
+  Unit: MB
+DataArray:
+  Configuration:
+    BankOrganization:
+      Rows: 16
+      Columns: 32
+      RowActivation: 2
+      TotalRows: 16
+      ColumnActivation: 1
+      TotalColumns: 32
+    MatOrganization:
+      Rows: 2
+      Columns: 1
+      RowActivation: 2
+      TotalRows: 2
+      ColumnActivation: 1
+      TotalColumns: 1
+      SubarrayRows: 512
+      SubarrayColumns: 256
+    MuxLevels:
+      SenseampMux: 1
+      OutputLevel1Mux: 1
+      OutputLevel2Mux: 1
+      RowsPerSet: 1
+    LocalWire:
+      WireType: LocalAggressive
+      RepeaterType: NoRepeaters
+      LowSwing: No
+    GlobalWire:
+      WireType: GlobalAggressive
+      RepeaterType: NoRepeaters
+      LowSwing: No
+    BufferDesignStyle: LatencyOptimized
+  Results:
+    Area:
+      Total:
+        Height_um: 3246.3217847161586
+        Width_um: 3201.3274074074075
+        Area_mm2: 10.39253890267557
+      Mat:
+        Height_um: 202.8951115447599
+        Width_um: 100.04148148148148
+        Area_mm2: 0.020297927544288222
+        Efficiency_percent: 71.413766712745
+      Subarray:
+        Height_um: 98.6316
+        Width_um: 100.04148148148148
+        Area_mm2: 0.00986725138488889
+        Efficiency_percent: 73.45264683435056
+      AreaEfficiency_percent: 71.413766712745
+    Timing:
+      Read:
+        Latency_ns: 4.937719197128096
+        TreeLatency_ns: 2.602442446088606
+        MatLatency_ns: 2.3352767510394896
+        PredecoderLatency_ns: 0.38290830470113013
+        SubarrayLatency_ns: 1.9523684463383595
+        RowDecoderLatency_ns: 0.8101511485667182
+        BitlineLatency_ns: 0.05253747601766646
+        SenseampLatency_ns: 1.07
+        MuxLatency_ns: 0.01967982175397483
+        PrechargeLatency_ns: 1.3617293650903444
+      Write:
+        Latency_ns: 12.511519750853138
+        TreeLatency_ns: 1.3012212230443028
+        MatLatency_ns: 11.210298527808835
+        PredecoderLatency_ns: 0.38290830470113013
+        SubarrayLatency_ns: 1.9523684463383595
+        RowDecoderLatency_ns: 0.8101511485667182
+        BitlineLatency_ns: 0.05253747601766646
+      ReadBandwidth_Bps: 6389912467.908626
+      WriteBandwidth_Bps: 1477733753.9615932
+    Power:
+      Read:
+        DynamicEnergy_pJ: 258.6753625362607
+        TreeDynamicEnergy_pJ: 180.48788103668863
+        MatDynamicEnergy_pJ: 39.093740749786036
+        SubarrayDynamicEnergy_pJ: 19.495201335926314
+      Write:
+        DynamicEnergy_pJ: 201.12337387945894
+      Leakage_mW: 36.5326658192795
+TagArray:
+  Configuration:
+    BankOrganization:
+      Rows: 64
+      Columns: 8
+      RowActivation: 2
+      TotalRows: 64
+      ColumnActivation: 1
+      TotalColumns: 8
+    MatOrganization:
+      Rows: 1
+      Columns: 2
+      RowActivation: 1
+      TotalRows: 1
+      ColumnActivation: 1
+      TotalColumns: 2
+      SubarrayRows: 256
+      SubarrayColumns: 120
+    MuxLevels:
+      SenseampMux: 1
+      OutputLevel1Mux: 1
+      OutputLevel2Mux: 1
+      RowsPerSet: 1
+    LocalWire:
+      WireType: LocalAggressive
+      RepeaterType: NoRepeaters
+      LowSwing: No
+    GlobalWire:
+      WireType: GlobalAggressive
+      RepeaterType: NoRepeaters
+      LowSwing: No
+    BufferDesignStyle: LatencyOptimized
+  Results:
+    Area:
+      Total:
+        Height_um: 3337.775207600335
+        Width_um: 899.974344833
+        Area_mm2: 3.003912055659942
+      Mat:
+        Height_um: 52.15273761875523
+        Width_um: 112.496793104125
+        Area_mm2: 0.0058670157337108245
+        Efficiency_percent: 57.906547283983336
+      Subarray:
+        Height_um: 51.663133333333334
+        Width_um: 52.088888888888896
+        Area_mm2: 0.0026910752118518523
+        Efficiency_percent: 63.12321233233208
+      AreaEfficiency_percent: 57.906547283983336
+    Timing:
+      Read:
+        Latency_ns: 3.018984041776758
+        TreeLatency_ns: 0.7246792278762404
+        MatLatency_ns: 2.294304813900518
+        PredecoderLatency_ns: 0.47291593844380075
+        SubarrayLatency_ns: 1.6168058726219172
+        RowDecoderLatency_ns: 0.5331150373582711
+        BitlineLatency_ns: 0.013690835263645958
+        SenseampLatency_ns: 1.07
+        MuxLatency_ns: 0
+        PrechargeLatency_ns: 0.6782599371548419
+      Write:
+        Latency_ns: 11.368370589740191
+        TreeLatency_ns: 0.3623396139381183
+        MatLatency_ns: 11.006030975802073
+        PredecoderLatency_ns: 0.47291593844380075
+        SubarrayLatency_ns: 1.6168058726219172
+        RowDecoderLatency_ns: 0.5331150373582711
+        BitlineLatency_ns: 0.013690835263645958
+      ReadBandwidth_Bps: 2128322799.196414
+      WriteBandwidth_Bps: 356020036.4943995
+    Power:
+      Read:
+        DynamicEnergy_pJ: 103.26861869852065
+        TreeDynamicEnergy_pJ: 55.56529619182252
+        MatDynamicEnergy_pJ: 23.851661253349068
+        SubarrayDynamicEnergy_pJ: 23.3726130527081
+      Write:
+        DynamicEnergy_pJ: 87.96054081657358
+      Leakage_mW: 24.610595233148924

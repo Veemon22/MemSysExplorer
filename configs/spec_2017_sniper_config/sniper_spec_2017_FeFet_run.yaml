@@ -23,4 +23,4 @@ apps:
 
 tech:
   run: new
-  array_characterization_config: configs/tech_configs/sample_configs/sample_FeFet_32nm_tech_config.yaml
+  array_characterization_config: configs/tech_configs/sample_configs/sample_FeFET_32nm_tech_config.yaml
