@@ -5,18 +5,12 @@ import sys
 import yaml
 
 
-
 def extract_value(val):
-            if isinstance(val, str):
-                return float(val.split()[0])
-            return val
+    if isinstance(val, str):
+        return float(val.split()[0])
+    return val
 
 def choosing_tech_yaml(sys_cfg):
-    """
-    Choose appropriate tech YAML based on system config.
-    Currently supports only cache design target.
-    """
-
     if sys_cfg.get("DesignTarget") == "cache":
         print(f"Choosing default config: tech/ArrayCharacterization/sample_configs/sample_FeFET_32nm.yaml")
         return "tech/ArrayCharacterization/sample_configs/sample_FeFET_32nm.yaml"
@@ -25,28 +19,18 @@ def choosing_tech_yaml(sys_cfg):
         sys.exit(1)
 
 
-    
 def parse_array_char_output(yaml_file_path):
-    """
-    Parse NVSim YAML output file.
-    Returns a list of results (1 or more depending on optimization mode).
-    Backwards compatible: if single result, returns list with 1 element.
-    """
     with open(yaml_file_path, 'r') as f:
-        # Load all YAML documents (separated by ---)
         result = yaml.load(f, Loader=yaml.FullLoader)
     
-        data={}
+        data = {}
 
         if "CacheDesign" in result:
-            # Data about Tech
             data["mem_cell_type"] = result['MemoryCell'].get('MemoryCellType', 'unknown')
             data["capacity"] = f"{result['Capacity'].get('Value','N/A')}{result['Capacity'].get('Unit','')}"
 
             cache = result["CacheDesign"]
-
             data["optimization_target"] = cache.get("OptimizationTarget", "unknown")
-            
             data["total_area"] = cache['Area']['Total_mm2']
             data["cache_hit_latency"] = cache['Timing']['CacheHitLatency_ns']
             data["cache_miss_latency"] = cache['Timing']['CacheMissLatency_ns']
@@ -61,7 +45,6 @@ def parse_array_char_output(yaml_file_path):
                 data["data_array_read_latency"] = data_results['Timing']['Read']['Latency_ns']
                 data["data_array_read_dynamic_energy"] = data_results['Power']['Read']['DynamicEnergy_pJ']
                 data["data_array_leakage_power"] = data_results['Power']['Leakage_mW']
-                
                 if "Write" in data_results["Power"]:
                     data["data_array_write_dynamic_energy"] = data_results['Power']['Write']['DynamicEnergy_pJ']
                 elif "Set" in data_results["Power"]:
@@ -69,29 +52,25 @@ def parse_array_char_output(yaml_file_path):
             
             if "TagArray" in result and "Results" in result["TagArray"]:
                 tag_results = result["TagArray"]["Results"]
-                data["tag_array_read_latency"] = tag_results['Timing']['Read']['Latency_ns'] 
+                data["tag_array_read_latency"] = tag_results['Timing']['Read']['Latency_ns']
                 data["tag_array_read_dynamic_energy"] = tag_results['Power']['Read']['DynamicEnergy_pJ']
                 data["tag_array_leakage_power"] = tag_results['Power']['Leakage_mW']
-                
                 if "Write" in tag_results["Power"]:
                     data["tag_array_write_dynamic_energy"] = tag_results['Power']['Write']['DynamicEnergy_pJ']
                 elif "Set" in tag_results["Power"]:
                     data["tag_array_write_dynamic_energy"] = tag_results['Power']['Set']['DynamicEnergy_pJ']
         
         else:
-            # Data About Tech
             data["mem_cell_type"] = result['MemoryCell'].get('MemoryCellType', 'unknown')
             data["capacity"] = f"{result['Capacity'].get('Value','N/A')}{result['Capacity'].get('Unit','')}"
             data["optimization_target"] = result.get("OptimizationTarget", "unknown")
 
-            # Non-cache design
             if "Results" in result:
                 res = result["Results"]
                 data["total_area"] = res['Area']['Total']['Area_mm2']
                 data["read_latency"] = res['Timing']['Read']['Latency_ns']
                 data["read_dynamic_energy"] = res['Power']['Read']['DynamicEnergy_pJ']
                 data["leakage_power"] = res['Power']['Leakage_mW']
-                
                 if "Write" in res["Timing"]:
                     data["write_latency"] = res['Timing']['Write']['Latency_ns']
                     data["write_dynamic_energy"] = res['Power']['Write']['DynamicEnergy_pJ']
@@ -100,6 +79,7 @@ def parse_array_char_output(yaml_file_path):
                     data["write_dynamic_energy"] = res['Power']['Set']['DynamicEnergy_pJ']
     
     return data
+
 
 def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, csv_filepath):
     file_exists = os.path.exists(csv_filepath)
@@ -132,6 +112,9 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                     "Total Hit Energy (mJ)",
                     "Total Miss Energy (mJ)",
                     "Total Energy (mJ)",
+                    "Total Read Power (mW)",
+                    "Total Write Power (mW)",
+                    "Total Power (mW)",
                     "Cache Hit Latency (ns)",
                     "Cache Miss Latency (ns)",
                     "Cache Write Latency (ns)",
@@ -153,14 +136,15 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                     "Optimization Target",
                     "Total Reads",
                     "Total Writes",
+                    "Total Read Latency (ms)",
+                    "Total Write Latency (ms)",
                     "Total Latency (ms)",
+                    "Total Read Energy (mJ)",
+                    "Total Write Energy (mJ)",
                     "Total Energy (mJ)",
-                    "Read Latency (ms)",
-                    "Write Latency (ms)",
-                    "Read Energy (mJ)",
-                    "Write Energy (mJ)",
-                    "Latency (ms)",
-                    "Energy (mJ)",
+                    "Total Read Power (mW)",
+                    "Total Write Power (mW)",
+                    "Total Power (mW)",
                     "Read Latency (ns)",
                     "Write Latency (ns)",
                     "Read Energy (nJ)",
@@ -172,7 +156,6 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
         
         tech_data = tech_result
 
-        # Write data row
         if sys_cfg.get("DesignTarget") == "cache":
             row = [
                 config_name,
@@ -188,16 +171,19 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                 model_result.get('total_writes', 0),
                 model_result.get('total_hits', 0),
                 model_result.get('total_misses', 0),
-                model_result.get('total_hit_latency_ms', 0),
+                model_result.get('total_read_latency_ms', 0),    # fixed
                 model_result.get('total_write_latency_ms', 0),
                 model_result.get('total_hit_latency_ms', 0),
                 model_result.get('total_miss_latency_ms', 0),
                 model_result.get('total_latency_ms', 0),
-                model_result.get('total_hit_energy_mJ', 0),
+                model_result.get('total_read_energy_mJ', 0),     # fixed
                 model_result.get('total_write_energy_mJ', 0),
                 model_result.get('total_hit_energy_mJ', 0),
                 model_result.get('total_miss_energy_mJ', 0),
                 model_result.get('total_energy_mJ', 0),
+                model_result.get('total_read_power_mW', 0),      # new
+                model_result.get('total_write_power_mW', 0),     # new
+                model_result.get('total_power_mW', 0),           # new
                 tech_data.get('cache_hit_latency', 0),
                 tech_data.get('cache_miss_latency', 0),
                 tech_data.get('cache_write_latency', 0),
@@ -219,14 +205,15 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                 tech_data.get('optimization_target', 'N/A'),
                 model_result.get('total_reads', 0),
                 model_result.get('total_writes', 0),
+                model_result.get('total_read_latency_ms', 0),
+                model_result.get('total_write_latency_ms', 0),
                 model_result.get('total_latency_ms', 0),
+                model_result.get('total_read_energy_mJ', 0),
+                model_result.get('total_write_energy_mJ', 0),
                 model_result.get('total_energy_mJ', 0),
-                model_result.get('read_latency_ms', 0),
-                model_result.get('write_latency_ms', 0),
-                model_result.get('read_energy_mJ', 0),
-                model_result.get('write_energy_mJ', 0),
-                model_result.get('latency_ms', 0),
-                model_result.get('energy_mJ', 0),
+                model_result.get('total_read_power_mW', 0),
+                model_result.get('total_write_power_mW', 0),
+                model_result.get('total_power_mW', 0),
                 tech_data.get('read_latency', 0),
                 tech_data.get('write_latency', 0),
                 tech_data.get('read_dynamic_energy', 0),
