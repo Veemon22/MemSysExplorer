@@ -260,6 +260,7 @@ class SniperConfig(PatternConfig):
                 read_size_histogram=read_size_histogram,
                 write_size_histogram=write_size_histogram,
                 workingset_size=workingset_size,
+                execution_time=core_time_sec,
                 load_hits=load_hits,
                 load_misses=load_misses,
                 store_hits=store_hits,

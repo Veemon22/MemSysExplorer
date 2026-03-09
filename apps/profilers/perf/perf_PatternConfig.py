@@ -158,6 +158,7 @@ class PerfConfig(PatternConfig):
             total_writes_i=0,
             read_size=64,
             write_size=64,
+            execution_time=time_elapsed,
             load_hits=load_hits,
             load_misses=load_misses,
             store_hits=store_hits,
