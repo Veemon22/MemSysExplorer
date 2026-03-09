@@ -41,6 +41,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <yaml-cpp/yaml.h>
 
 InputParameter::InputParameter() {
 	// TODO Auto-generated constructor stub
@@ -119,6 +120,7 @@ InputParameter::InputParameter() {
 	flashBlockSize = 0;
 
 	outputFilePrefix = "output";	/* Default output file name */
+    outputDirectory = "results/";  /* Default output directory */
 }
 
 InputParameter::~InputParameter() {
@@ -126,489 +128,633 @@ InputParameter::~InputParameter() {
 }
 
 void InputParameter::ReadInputParameterFromFile(const std::string & inputFile) {
-	FILE *fp = fopen(inputFile.c_str(), "r");
-	char line[5000];
-	char tmp[5000];
-
-	if (!fp) {
-		cout << inputFile << " cannot be found!\n";
-		exit(-1);
-	}
-
-	while (fscanf(fp, "%[^\n]\n", line) != EOF) {
-		if (!strncmp("-DesignTarget", line, strlen("-DesignTarget"))) {
-			sscanf(line, "-DesignTarget: %s", tmp);
-			if (!strcmp(tmp, "cache"))
-				designTarget = cache;
-			else if (!strcmp(tmp, "RAM")) {
-				designTarget = RAM_chip;
-				minNumRowPerSet = 1;
-				maxNumRowPerSet = 1;
+    try {
+        YAML::Node config = YAML::LoadFile(inputFile);
+        
+        // Memory Cell Input File
+        if (config["MemoryCellInputFile"]) {
+            fileMemCell = config["MemoryCellInputFile"].as<string>();
+        }
+        
+        // Process Technology
+        if (config["ProcessNode"])
+            processNode = config["ProcessNode"].as<int>();
+        if (config["ProcessNodeW"])
+            processNodeW = config["ProcessNodeW"].as<int>();
+        else if (config["ProcessNode"])
+            processNodeW = processNode;
+            
+        if (config["ProcessNodeR"])
+            processNodeR = config["ProcessNodeR"].as<int>();
+        else if (config["ProcessNode"])
+            processNodeR = processNode;
+        
+        // Device Roadmap
+        if (config["DeviceRoadmap"]) {
+            string roadmap = config["DeviceRoadmap"].as<string>();
+            if (roadmap == "HP")
+                deviceRoadmap = HP;
+            else if (roadmap == "LOP")
+                deviceRoadmap = LOP;
+            else if (roadmap == "IGZO")
+                deviceRoadmap = IGZO;
+            else if (roadmap == "CNT")
+                deviceRoadmap = CNT;
+            else {
+                cout << "Invalid DeviceRoadmap (choose HP/LOP/CNT/IGZO)" << endl;
+                exit(-1);
+            }
+        }
+        
+        if (config["DeviceRoadmapW"]) {
+            string roadmap = config["DeviceRoadmapW"].as<string>();
+            if (roadmap == "HP")
+                deviceRoadmapW = HP;
+            else if (roadmap == "LOP")
+                deviceRoadmapW = LOP;
+            else if (roadmap == "IGZO")
+                deviceRoadmapW = IGZO;
+            else if (roadmap == "CNT")
+                deviceRoadmapW = CNT;
+            else {
+                cout << "Invalid DeviceRoadmapW (choose HP/LOP/CNT/IGZO)" << endl;
+                exit(-1);
+            }
+        } else if (config["DeviceRoadmap"]) {
+            deviceRoadmapW = deviceRoadmap;
+        }
+        
+        if (config["DeviceRoadmapR"]) {
+            string roadmap = config["DeviceRoadmapR"].as<string>();
+            if (roadmap == "HP")
+                deviceRoadmapR = HP;
+            else if (roadmap == "LOP")
+                deviceRoadmapR = LOP;
+            else if (roadmap == "IGZO")
+                deviceRoadmapR = IGZO;
+            else if (roadmap == "CNT")
+                deviceRoadmapR = CNT;
+            else {
+                cout << "Invalid DeviceRoadmapR (choose HP/LOP/CNT/IGZO)" << endl;
+                exit(-1);
+            }
+        } else if (config["DeviceRoadmap"]) {
+            deviceRoadmapR = deviceRoadmap;
+        }
+        
+        // Design Configuration
+        if (config["DesignTarget"]) {
+            string target = config["DesignTarget"].as<string>();
+            if (target == "cache")
+                designTarget = cache;
+            else if (target == "RAM") {
+                designTarget = RAM_chip;
+                minNumRowPerSet = 1;
+                maxNumRowPerSet = 1;
+            } else {
+                designTarget = CAM_chip;
+                minNumRowPerSet = 1;
+                maxNumRowPerSet = 1;
+            }
+        }
+        
+        if (config["CacheAccessMode"]) {
+            string mode = config["CacheAccessMode"].as<string>();
+            if (mode == "Sequential")
+                cacheAccessMode = sequential_access_mode;
+            else if (mode == "Fast")
+                cacheAccessMode = fast_access_mode;
+            else
+                cacheAccessMode = normal_access_mode;
+        }
+        
+        if (config["Associativity"])
+            associativity = config["Associativity"].as<int>();
+        
+        // Optimization
+        if (config["OptimizationTarget"]) {
+            string target = config["OptimizationTarget"].as<string>();
+            if (target == "ReadLatency")
+                optimizationTarget = read_latency_optimized;
+            else if (target == "WriteLatency")
+                optimizationTarget = write_latency_optimized;
+            else if (target == "ReadDynamicEnergy")
+                optimizationTarget = read_energy_optimized;
+            else if (target == "WriteDynamicEnergy")
+                optimizationTarget = write_energy_optimized;
+            else if (target == "ReadEDP")
+                optimizationTarget = read_edp_optimized;
+            else if (target == "WriteEDP")
+                optimizationTarget = write_edp_optimized;
+            else if (target == "LeakagePower")
+                optimizationTarget = leakage_optimized;
+            else if (target == "Area")
+                optimizationTarget = area_optimized;
+            else
+                optimizationTarget = full_exploration;
+        }
+        
+        if (config["OutputFilePrefix"])
+            outputFilePrefix = config["OutputFilePrefix"].as<string>();
+        
+        if (config["OutputDirectory"])
+            outputDirectory = config["OutputDirectory"].as<string>();
+        
+        if (config["EnablePruning"]) {
+            string enable = config["EnablePruning"].as<string>();
+            isPruningEnabled = (enable == "Yes" || enable == "yes" || enable == "true");
+        }
+        
+        // Memory Specifications - Support both nested and flat formats
+        if (config["Capacity"]) {
+            if (config["Capacity"].IsMap()) {
+                // Nested format
+                long cap = config["Capacity"]["Value"].as<long>();
+                string unit = config["Capacity"]["Unit"].as<string>();
+                if (unit == "B")
+                    capacity = cap;
+                else if (unit == "KB")
+                    capacity = cap * 1024;
+                else if (unit == "MB")
+                    capacity = cap * 1024 * 1024;
+            } else {
+                // Flat format - assume KB for backwards compatibility
+                capacity = config["Capacity"].as<long>() * 1024;
+            }
+        }
+        
+        // Also support old-style flat capacity fields
+        if (config["Capacity_B"])
+            capacity = config["Capacity_B"].as<long>();
+        if (config["Capacity_KB"])
+            capacity = config["Capacity_KB"].as<long>() * 1024;
+        if (config["Capacity_MB"])
+            capacity = config["Capacity_MB"].as<long>() * 1024 * 1024;
+        
+        if (config["WordWidth"])
+            wordWidth = config["WordWidth"].as<long>();
+        
+        // Wire Configuration
+        if (config["LocalWire"]) {
+            YAML::Node localWire = config["LocalWire"];
+            if (localWire["Type"]) {
+                string type = localWire["Type"].as<string>();
+                if (type == "LocalAggressive") {
+                    minLocalWireType = local_aggressive;
+                    maxLocalWireType = local_aggressive;
+                } else if (type == "LocalConservative") {
+                    minLocalWireType = local_conservative;
+                    maxLocalWireType = local_conservative;
+                } else if (type == "SemiAggressive") {
+                    minLocalWireType = semi_aggressive;
+                    maxLocalWireType = semi_aggressive;
+                } else if (type == "SemiConservative") {
+                    minLocalWireType = semi_conservative;
+                    maxLocalWireType = semi_conservative;
+                } else if (type == "GlobalAggressive") {
+                    minLocalWireType = global_aggressive;
+                    maxLocalWireType = global_aggressive;
+                } else if (type == "GlobalConservative") {
+                    minLocalWireType = global_conservative;
+                    maxLocalWireType = global_conservative;
+                } else {
+                    minLocalWireType = dram_wordline;
+                    maxLocalWireType = dram_wordline;
+                }
+            }
+            
+            if (localWire["RepeaterType"]) {
+                string type = localWire["RepeaterType"].as<string>();
+                if (type == "RepeatedOpt") {
+                    minLocalWireRepeaterType = repeated_opt;
+                    maxLocalWireRepeaterType = repeated_opt;
+                } else if (type == "Repeated5%Penalty") {
+                    minLocalWireRepeaterType = repeated_5;
+                    maxLocalWireRepeaterType = repeated_5;
+                } else if (type == "Repeated10%Penalty") {
+                    minLocalWireRepeaterType = repeated_10;
+                    maxLocalWireRepeaterType = repeated_10;
+                } else if (type == "Repeated20%Penalty") {
+                    minLocalWireRepeaterType = repeated_20;
+                    maxLocalWireRepeaterType = repeated_20;
+                } else if (type == "Repeated30%Penalty") {
+                    minLocalWireRepeaterType = repeated_30;
+                    maxLocalWireRepeaterType = repeated_30;
+                } else if (type == "Repeated40%Penalty") {
+                    minLocalWireRepeaterType = repeated_40;
+                    maxLocalWireRepeaterType = repeated_40;
+                } else if (type == "Repeated50%Penalty") {
+                    minLocalWireRepeaterType = repeated_50;
+                    maxLocalWireRepeaterType = repeated_50;
+                } else {
+                    minLocalWireRepeaterType = repeated_none;
+                    maxLocalWireRepeaterType = repeated_none;
+                }
+            }
+            
+            if (localWire["UseLowSwing"]) {
+                string use = localWire["UseLowSwing"].as<string>();
+                bool useLowSwing = (use == "Yes" || use == "yes" || use == "true");
+                minIsLocalWireLowSwing = useLowSwing;
+                maxIsLocalWireLowSwing = useLowSwing;
+            }
+        }
+        
+        // Also support flat local wire fields
+        if (config["LocalWireType"]) {
+            string type = config["LocalWireType"].as<string>();
+            if (type == "LocalAggressive") {
+                minLocalWireType = local_aggressive;
+                maxLocalWireType = local_aggressive;
+            } else if (type == "LocalConservative") {
+                minLocalWireType = local_conservative;
+                maxLocalWireType = local_conservative;
+            } else if (type == "SemiAggressive") {
+                minLocalWireType = semi_aggressive;
+                maxLocalWireType = semi_aggressive;
+            } else if (type == "SemiConservative") {
+                minLocalWireType = semi_conservative;
+                maxLocalWireType = semi_conservative;
+            } else if (type == "GlobalAggressive") {
+                minLocalWireType = global_aggressive;
+                maxLocalWireType = global_aggressive;
+            } else if (type == "GlobalConservative") {
+                minLocalWireType = global_conservative;
+                maxLocalWireType = global_conservative;
+            } else {
+                minLocalWireType = dram_wordline;
+                maxLocalWireType = dram_wordline;
+            }
+        }
+        
+        if (config["LocalWireRepeaterType"]) {
+            string type = config["LocalWireRepeaterType"].as<string>();
+            if (type == "RepeatedOpt") {
+                minLocalWireRepeaterType = repeated_opt;
+                maxLocalWireRepeaterType = repeated_opt;
+            } else if (type == "Repeated5%Penalty") {
+                minLocalWireRepeaterType = repeated_5;
+                maxLocalWireRepeaterType = repeated_5;
+            } else if (type == "Repeated10%Penalty") {
+                minLocalWireRepeaterType = repeated_10;
+                maxLocalWireRepeaterType = repeated_10;
+            } else if (type == "Repeated20%Penalty") {
+                minLocalWireRepeaterType = repeated_20;
+                maxLocalWireRepeaterType = repeated_20;
+            } else if (type == "Repeated30%Penalty") {
+                minLocalWireRepeaterType = repeated_30;
+                maxLocalWireRepeaterType = repeated_30;
+            } else if (type == "Repeated40%Penalty") {
+                minLocalWireRepeaterType = repeated_40;
+                maxLocalWireRepeaterType = repeated_40;
+            } else if (type == "Repeated50%Penalty") {
+                minLocalWireRepeaterType = repeated_50;
+                maxLocalWireRepeaterType = repeated_50;
+            } else {
+                minLocalWireRepeaterType = repeated_none;
+                maxLocalWireRepeaterType = repeated_none;
+            }
+        }
+        
+        if (config["LocalWireUseLowSwing"]) {
+            string use = config["LocalWireUseLowSwing"].as<string>();
+            bool useLowSwing = (use == "Yes" || use == "yes" || use == "true");
+            minIsLocalWireLowSwing = useLowSwing;
+            maxIsLocalWireLowSwing = useLowSwing;
+        }
+        
+        // Global Wire Configuration
+        if (config["GlobalWire"]) {
+            YAML::Node globalWire = config["GlobalWire"];
+            if (globalWire["Type"]) {
+                string type = globalWire["Type"].as<string>();
+                if (type == "LocalAggressive") {
+                    minGlobalWireType = local_aggressive;
+                    maxGlobalWireType = local_aggressive;
+                } else if (type == "LocalConservative") {
+                    minGlobalWireType = local_conservative;
+                    maxGlobalWireType = local_conservative;
+                } else if (type == "SemiAggressive") {
+                    minGlobalWireType = semi_aggressive;
+                    maxGlobalWireType = semi_aggressive;
+                } else if (type == "SemiConservative") {
+                    minGlobalWireType = semi_conservative;
+                    maxGlobalWireType = semi_conservative;
+                } else if (type == "GlobalAggressive") {
+                    minGlobalWireType = global_aggressive;
+                    maxGlobalWireType = global_aggressive;
+                } else if (type == "GlobalConservative") {
+                    minGlobalWireType = global_conservative;
+                    maxGlobalWireType = global_conservative;
+                } else {
+                    minGlobalWireType = dram_wordline;
+                    maxGlobalWireType = dram_wordline;
+                }
+            }
+            
+            if (globalWire["RepeaterType"]) {
+                string type = globalWire["RepeaterType"].as<string>();
+                if (type == "RepeatedOpt") {
+                    minGlobalWireRepeaterType = repeated_opt;
+                    maxGlobalWireRepeaterType = repeated_opt;
+                } else if (type == "Repeated5%Penalty") {
+                    minGlobalWireRepeaterType = repeated_5;
+                    maxGlobalWireRepeaterType = repeated_5;
+                } else if (type == "Repeated10%Penalty") {
+                    minGlobalWireRepeaterType = repeated_10;
+                    maxGlobalWireRepeaterType = repeated_10;
+                } else if (type == "Repeated20%Penalty") {
+                    minGlobalWireRepeaterType = repeated_20;
+                    maxGlobalWireRepeaterType = repeated_20;
+                } else if (type == "Repeated30%Penalty") {
+                    minGlobalWireRepeaterType = repeated_30;
+                    maxGlobalWireRepeaterType = repeated_30;
+                } else if (type == "Repeated40%Penalty") {
+                    minGlobalWireRepeaterType = repeated_40;
+                    maxGlobalWireRepeaterType = repeated_40;
+                } else if (type == "Repeated50%Penalty") {
+                    minGlobalWireRepeaterType = repeated_50;
+                    maxGlobalWireRepeaterType = repeated_50;
+                } else {
+                    minGlobalWireRepeaterType = repeated_none;
+                    maxGlobalWireRepeaterType = repeated_none;
+                }
+            }
+            
+            if (globalWire["UseLowSwing"]) {
+                string use = globalWire["UseLowSwing"].as<string>();
+                bool useLowSwing = (use == "Yes" || use == "yes" || use == "true");
+                minIsGlobalWireLowSwing = useLowSwing;
+                maxIsGlobalWireLowSwing = useLowSwing;
+            }
+        }
+        
+        // Also support flat global wire fields
+        if (config["GlobalWireType"]) {
+            string type = config["GlobalWireType"].as<string>();
+            if (type == "LocalAggressive") {
+                minGlobalWireType = local_aggressive;
+                maxGlobalWireType = local_aggressive;
+            } else if (type == "LocalConservative") {
+                minGlobalWireType = local_conservative;
+                maxGlobalWireType = local_conservative;
+            } else if (type == "SemiAggressive") {
+                minGlobalWireType = semi_aggressive;
+                maxGlobalWireType = semi_aggressive;
+            } else if (type == "SemiConservative") {
+                minGlobalWireType = semi_conservative;
+                maxGlobalWireType = semi_conservative;
+            } else if (type == "GlobalAggressive") {
+                minGlobalWireType = global_aggressive;
+                maxGlobalWireType = global_aggressive;
+            } else if (type == "GlobalConservative") {
+                minGlobalWireType = global_conservative;
+                maxGlobalWireType = global_conservative;
+            } else {
+                minGlobalWireType = dram_wordline;
+                maxGlobalWireType = dram_wordline;
+            }
+        }
+        
+        if (config["GlobalWireRepeaterType"]) {
+            string type = config["GlobalWireRepeaterType"].as<string>();
+            if (type == "RepeatedOpt") {
+                minGlobalWireRepeaterType = repeated_opt;
+                maxGlobalWireRepeaterType = repeated_opt;
+            } else if (type == "Repeated5%Penalty") {
+                minGlobalWireRepeaterType = repeated_5;
+                maxGlobalWireRepeaterType = repeated_5;
+            } else if (type == "Repeated10%Penalty") {
+                minGlobalWireRepeaterType = repeated_10;
+                maxGlobalWireRepeaterType = repeated_10;
+            } else if (type == "Repeated20%Penalty") {
+                minGlobalWireRepeaterType = repeated_20;
+                maxGlobalWireRepeaterType = repeated_20;
+            } else if (type == "Repeated30%Penalty") {
+                minGlobalWireRepeaterType = repeated_30;
+                maxGlobalWireRepeaterType = repeated_30;
+            } else if (type == "Repeated40%Penalty") {
+                minGlobalWireRepeaterType = repeated_40;
+                maxGlobalWireRepeaterType = repeated_40;
+            } else if (type == "Repeated50%Penalty") {
+                minGlobalWireRepeaterType = repeated_50;
+                maxGlobalWireRepeaterType = repeated_50;
+            } else {
+                minGlobalWireRepeaterType = repeated_none;
+                maxGlobalWireRepeaterType = repeated_none;
+            }
+        }
+        
+        if (config["GlobalWireUseLowSwing"]) {
+            string use = config["GlobalWireUseLowSwing"].as<string>();
+            bool useLowSwing = (use == "Yes" || use == "yes" || use == "true");
+            minIsGlobalWireLowSwing = useLowSwing;
+            maxIsGlobalWireLowSwing = useLowSwing;
+        }
+        
+        // Routing
+        if (config["Routing"]) {
+            string routing = config["Routing"].as<string>();
+            routingMode = (routing == "H-tree") ? h_tree : non_h_tree;
+        }
+        
+        if (config["InternalSensing"]) {
+            if (config["InternalSensing"].IsScalar()) {
+                string sensing = config["InternalSensing"].as<string>();
+                internalSensing = (sensing == "true" || sensing == "True" || sensing == "yes" || sensing == "Yes");
+            } else {
+                internalSensing = config["InternalSensing"].as<bool>();
+            }
+        }
+        
+        // Operating Conditions
+        if (config["Temperature"])
+            temperature = config["Temperature"].as<int>();
+        
+        // Additional parameters
+        if (config["MaxDriverCurrent"])
+            maxDriverCurrent = config["MaxDriverCurrent"].as<double>();
+        
+        if (config["MaxNmosSize"])
+            maxNmosSize = config["MaxNmosSize"].as<double>();
+        
+        if (config["WriteScheme"]) {
+            string scheme = config["WriteScheme"].as<string>();
+            if (scheme == "SetBeforeReset")
+                writeScheme = set_before_reset;
+            else if (scheme == "ResetBeforeSet")
+                writeScheme = reset_before_set;
+            else if (scheme == "EraseBeforeSet")
+                writeScheme = erase_before_set;
+            else if (scheme == "EraseBeforeReset")
+                writeScheme = erase_before_reset;
+            else if (scheme == "WriteAndVerify")
+                writeScheme = write_and_verify;
+            else
+                writeScheme = normal_write;
+        }
+        
+        // Buffer Design Optimization
+        if (config["BufferDesignOptimization"]) {
+            string opt = config["BufferDesignOptimization"].as<string>();
+            if (opt == "latency") {
+                minAreaOptimizationLevel = 0;
+                maxAreaOptimizationLevel = 0;
+            } else if (opt == "area") {
+                minAreaOptimizationLevel = 2;
+                maxAreaOptimizationLevel = 2;
 			} else {
-				designTarget = CAM_chip;
-				minNumRowPerSet = 1;
-				maxNumRowPerSet = 1;
-			}
-			continue;
-		}
-
-		if (!strncmp("-OptimizationTarget", line, strlen("-OptimizationTarget"))) {
-			sscanf(line, "-OptimizationTarget: %s", tmp);
-			if (!strcmp(tmp, "ReadLatency"))
-				optimizationTarget = read_latency_optimized;
-			else if (!strcmp(tmp, "WriteLatency"))
-				optimizationTarget = write_latency_optimized;
-			else if (!strcmp(tmp, "ReadDynamicEnergy"))
-				optimizationTarget = read_energy_optimized;
-			else if (!strcmp(tmp, "WriteDynamicEnergy"))
-				optimizationTarget = write_energy_optimized;
-			else if (!strcmp(tmp, "ReadEDP"))
-				optimizationTarget = read_edp_optimized;
-			else if (!strcmp(tmp, "WriteEDP"))
-				optimizationTarget = write_edp_optimized;
-			else if (!strcmp(tmp, "LeakagePower"))
-				optimizationTarget = leakage_optimized;
-			else if (!strcmp(tmp, "Area"))
-				optimizationTarget = area_optimized;
-			else
-				optimizationTarget = full_exploration;
-			continue;
-		}
-
-		if (!strncmp("-OutputFilePrefix", line, strlen("-OutputFilePrefix"))) {
-			sscanf(line, "-OutputFilePrefix: %s", tmp);
-			outputFilePrefix = (string)tmp;
-			continue;
-		}
-
-		if (!strncmp("-ProcessNodeW", line, strlen("-ProcessNodeW"))) {
-			sscanf(line, "-ProcessNodeW: %d", &processNodeW);
-			continue;
-		}
-		if (!strncmp("-ProcessNodeR", line, strlen("-ProcessNodeR"))) {
-			sscanf(line, "-ProcessNodeR: %d", &processNodeR);
-			continue;
-		}
-		if (!strncmp("-ProcessNode", line, strlen("-ProcessNode"))) {
-			sscanf(line, "-ProcessNode: %d", &processNode);
-			continue;
-		}
-		if (!strncmp("-Capacity (B)", line, strlen("-Capacity (B)"))) {
-			long cap;
-			sscanf(line, "-Capacity (B): %ld", &cap);
-			capacity = cap;
-			continue;
-		}
-		if (!strncmp("-Capacity (KB)", line, strlen("-Capacity (KB)"))) {
-			long cap;
-			sscanf(line, "-Capacity (KB): %ld", &cap);
-			capacity = cap * 1024;
-			continue;
-		}
-		if (!strncmp("-Capacity (MB)", line, strlen("-Capacity (MB)"))) {
-			long cap;
-			sscanf(line, "-Capacity (MB): %ld", &cap);
-			capacity = cap * 1024*1024;
-			continue;
-		}
-		if (!strncmp("-WordWidth", line, strlen("-WordWidth"))) {
-			sscanf(line, "-WordWidth (bit): %ld", &wordWidth);
-			continue;
-		}
-		if (!strncmp("-Associativity", line, strlen("-Associativity"))) {
-			sscanf(line, "-Associativity (for cache only): %d", &associativity);
-			continue;
-		}
-		if (!strncmp("-Temperature", line, strlen("-Temperature"))) {
-			sscanf(line, "-Temperature (K): %d", &temperature);
-			continue;
-		}
-		if (!strncmp("-MaxDriverCurrent", line, strlen("-MaxDriverCurrent"))) {
-			sscanf(line, "-MaxDriverCurrent (uA): %lf", &maxDriverCurrent);
-			continue;
-		}
-		if (!strncmp("-DeviceRoadmapW", line, strlen("-DeviceRoadmapW"))) {
-			sscanf(line, "-DeviceRoadmapW: %s", tmp);
-			if (!strcmp(tmp, "HP"))
-				deviceRoadmapW = HP;
-			else if (!strcmp(tmp, "LOP"))
-				deviceRoadmapW = LOP;
-			else if (!strcmp(tmp, "IGZO"))
-				deviceRoadmapW = IGZO;
-			else if (!strcmp(tmp, "CNT"))
-				deviceRoadmapW = CNT;
-			else {
-				cout << inputFile << "Invalid process roadmap (please choose HP/LOP/CNT/IGZO) \n";
-				exit(-1);
-			}
-			continue;
-		}
-		if (!strncmp("-DeviceRoadmapR", line, strlen("-DeviceRoadmapR"))) {
-			sscanf(line, "-DeviceRoadmapR: %s", tmp);
-			if (!strcmp(tmp, "HP"))
-				deviceRoadmapR = HP;
-			else if (!strcmp(tmp, "LOP"))
-				deviceRoadmapR = LOP;
-				else if (!strcmp(tmp, "IGZO"))
-				deviceRoadmapR = IGZO;
-			else if (!strcmp(tmp, "CNT"))
-				deviceRoadmapR = CNT;
-			else {
-				cout << inputFile << "Invalid process roadmap (please choose HP/LOP/CNT/IGZO) \n";
-				exit(-1);
-			}
-			continue;
-		}
-		if (!strncmp("-DeviceRoadmap", line, strlen("-DeviceRoadmap"))) {
-			sscanf(line, "-DeviceRoadmap: %s", tmp);
-			if (!strcmp(tmp, "HP"))
-				deviceRoadmap = HP;
-			else if (!strcmp(tmp, "LOP"))
-				deviceRoadmap = LOP;
-			else if (!strcmp(tmp, "IGZO"))
-				deviceRoadmap = IGZO;
-			else if (!strcmp(tmp, "CNT"))
-				deviceRoadmap = CNT;
-			else {
-				cout << inputFile << "Invalid process roadmap (please choose HP/LOP/CNT/IGZO) \n";
-				exit(-1);
-			}
-		}
-		if (!strncmp("-WriteScheme", line, strlen("-WriteScheme"))) {
-			sscanf(line, "-WriteScheme: %s", tmp);
-			if (!strcmp(tmp, "SetBeforeReset"))
-				writeScheme = set_before_reset;
-			else if (!strcmp(tmp, "ResetBeforeSet"))
-				writeScheme = reset_before_set;
-			else if (!strcmp(tmp, "EraseBeforeSet"))
-				writeScheme = erase_before_set;
-			else if (!strcmp(tmp, "EraseBeforeReset"))
-				writeScheme = erase_before_reset;
-			else if (!strcmp(tmp, "WriteAndVerify"))
-				writeScheme = write_and_verify;
-			else
-				writeScheme = normal_write;
-			continue;
-		}
-
-		if (!strncmp("-CacheAccessMode", line, strlen("-CacheAccessMode"))) {
-			sscanf(line, "-CacheAccessMode: %s", tmp);
-			if (!strcmp(tmp, "Sequential"))
-				cacheAccessMode = sequential_access_mode;
-			else if (!strcmp(tmp, "Fast"))
-				cacheAccessMode = fast_access_mode;
-			else
-				cacheAccessMode = normal_access_mode;
-			continue;
-		}
-
-		if (!strncmp("-LocalWireType", line, strlen("-LocalWireType"))) {
-			sscanf(line, "-LocalWireType: %s", tmp);
-			if (!strcmp(tmp, "LocalAggressive")) {
-				minLocalWireType = local_aggressive;
-				maxLocalWireType = local_aggressive;
-			} else if (!strcmp(tmp, "LocalConservative")) {
-				minLocalWireType = local_conservative;
-				maxLocalWireType = local_conservative;
-			} else if (!strcmp(tmp, "SemiAggressive")) {
-				minLocalWireType = semi_aggressive;
-				maxLocalWireType = semi_aggressive;
-			} else if (!strcmp(tmp, "SemiConservative")) {
-				minLocalWireType = semi_conservative;
-				maxLocalWireType = semi_conservative;
-			} else if (!strcmp(tmp, "GlobalAggressive")) {
-				minLocalWireType = global_aggressive;
-				maxLocalWireType = global_aggressive;
-			} else if (!strcmp(tmp, "GlobalConservative")) {
-				minLocalWireType = global_conservative;
-				maxLocalWireType = global_conservative;
-			} else {	/* no supported yet */
-				minLocalWireType = dram_wordline;
-				maxLocalWireType = dram_wordline;
-			}
-			continue;
-		}
-		if (!strncmp("-LocalWireRepeaterType", line, strlen("-LocalWireRepeaterType"))) {
-			sscanf(line, "-LocalWireRepeaterType: %s", tmp);
-			if (!strcmp(tmp, "RepeatedOpt")) {
-				minLocalWireRepeaterType = repeated_opt;
-				maxLocalWireRepeaterType = repeated_opt;
-			} else if (!strcmp(tmp, "Repeated5%Penalty")) {
-				minLocalWireRepeaterType = repeated_5;
-				maxLocalWireRepeaterType = repeated_5;
-			} else if (!strcmp(tmp, "Repeated10%Penalty")) {
-				minLocalWireRepeaterType = repeated_10;
-				maxLocalWireRepeaterType = repeated_10;
-			} else if (!strcmp(tmp, "Repeated20%Penalty")) {
-				minLocalWireRepeaterType = repeated_20;
-				maxLocalWireRepeaterType = repeated_20;
-			} else if (!strcmp(tmp, "Repeated30%Penalty")) {
-				minLocalWireRepeaterType = repeated_30;
-				maxLocalWireRepeaterType = repeated_30;
-			} else if (!strcmp(tmp, "Repeated40%Penalty")) {
-				minLocalWireRepeaterType = repeated_40;
-				maxLocalWireRepeaterType = repeated_40;
-			} else if (!strcmp(tmp, "Repeated50%Penalty")) {
-				minLocalWireRepeaterType = repeated_50;
-				maxLocalWireRepeaterType = repeated_50;
-			} else {
-				minLocalWireRepeaterType = repeated_none;
-				maxLocalWireRepeaterType = repeated_none;
-			}
-			continue;
-		}
-		if (!strncmp("-LocalWireUseLowSwing", line, strlen("-LocalWireUseLowSwing"))) {
-			sscanf(line, "-LocalWireUseLowSwing: %s", tmp);
-			if (!strcmp(tmp, "Yes")) {
-				minIsLocalWireLowSwing = 1;
-				maxIsLocalWireLowSwing = 1;
-			} else {
-				minIsLocalWireLowSwing = 0;
-				maxIsLocalWireLowSwing = 0;
-			}
-			continue;
-		}
-
-		if (!strncmp("-GlobalWireType", line, strlen("-GlobalWireType"))) {
-			sscanf(line, "-GlobalWireType: %s", tmp);
-			if (!strcmp(tmp, "LocalAggressive")) {
-				minGlobalWireType = local_aggressive;
-				maxGlobalWireType = local_aggressive;
-			} else if (!strcmp(tmp, "LocalConservative")) {
-				minGlobalWireType = local_conservative;
-				maxGlobalWireType = local_conservative;
-			} else if (!strcmp(tmp, "SemiAggressive")) {
-				minGlobalWireType = semi_aggressive;
-				maxGlobalWireType = semi_aggressive;
-			} else if (!strcmp(tmp, "SemiConservative")) {
-				minGlobalWireType = semi_conservative;
-				maxGlobalWireType = semi_conservative;
-			} else if (!strcmp(tmp, "GlobalAggressive")) {
-				minGlobalWireType = global_aggressive;
-				maxGlobalWireType = global_aggressive;
-			} else if (!strcmp(tmp, "GlobalConservative")) {
-				minGlobalWireType = global_conservative;
-				maxGlobalWireType = global_conservative;
-			} else {	/* no supported yet */
-				minGlobalWireType = dram_wordline;
-				maxGlobalWireType = dram_wordline;
-			}
-			continue;
-		}
-		if (!strncmp("-GlobalWireRepeaterType", line, strlen("-GlobalWireRepeaterType"))) {
-			sscanf(line, "-GlobalWireRepeaterType: %s", tmp);
-			if (!strcmp(tmp, "RepeatedOpt")) {
-				minGlobalWireRepeaterType = repeated_opt;
-				maxGlobalWireRepeaterType = repeated_opt;
-			} else if (!strcmp(tmp, "Repeated5%Penalty")) {
-				minGlobalWireRepeaterType = repeated_5;
-				maxGlobalWireRepeaterType = repeated_5;
-			} else if (!strcmp(tmp, "Repeated10%Penalty")) {
-				minGlobalWireRepeaterType = repeated_10;
-				maxGlobalWireRepeaterType = repeated_10;
-			} else if (!strcmp(tmp, "Repeated20%Penalty")) {
-				minGlobalWireRepeaterType = repeated_20;
-				maxGlobalWireRepeaterType = repeated_20;
-			} else if (!strcmp(tmp, "Repeated30%Penalty")) {
-				minGlobalWireRepeaterType = repeated_30;
-				maxGlobalWireRepeaterType = repeated_30;
-			} else if (!strcmp(tmp, "Repeated40%Penalty")) {
-				minGlobalWireRepeaterType = repeated_40;
-				maxGlobalWireRepeaterType = repeated_40;
-			} else if (!strcmp(tmp, "Repeated50%Penalty")) {
-				minGlobalWireRepeaterType = repeated_50;
-				maxGlobalWireRepeaterType = repeated_50;
-			} else {
-				minGlobalWireRepeaterType = repeated_none;
-				maxGlobalWireRepeaterType = repeated_none;
-			}
-			continue;
-		}
-		if (!strncmp("-GlobalWireUseLowSwing", line, strlen("-GlobalWireUseLowSwing"))) {
-			sscanf(line, "-GlobalWireUseLowSwing: %s", tmp);
-			if (!strcmp(tmp, "Yes")) {
-				minIsGlobalWireLowSwing = 1;
-				maxIsGlobalWireLowSwing = 1;
-			} else {
-				minIsGlobalWireLowSwing = 0;
-				maxIsGlobalWireLowSwing = 0;
-			}
-			continue;
-		}
-
-		if (!strncmp("-Routing", line, strlen("-Routing"))) {
-			sscanf(line, "-Routing: %s", tmp);
-			if (!strcmp(tmp, "H-tree"))
-				routingMode = h_tree;
-			else
-				routingMode = non_h_tree;
-			continue;
-		}
-
-		if (!strncmp("-InternalSensing", line, strlen("-InternalSensing"))) {
-			sscanf(line, "-InternalSensing: %s", tmp);
-			if (!strcmp(tmp, "true"))
-				internalSensing = true;
-			else
-				internalSensing = false;
-			continue;
-		}
-
-		if (!strncmp("-MemoryCellInputFile", line, strlen("-MemoryCellInputFile"))) {
-			sscanf(line, "-MemoryCellInputFile: %s", tmp);
-			fileMemCell = string(tmp);
-			continue;
-		}
-
-		if (!strncmp("-MaxNmosSize", line, strlen("-MaxNmosSize"))) {
-			sscanf(line, "-MaxNmosSize (F): %lf", &maxNmosSize);
-			continue;
-		}
-
-		if (!strncmp("-ForceBank", line, strlen("-ForceBank"))) {
-			sscanf(line, "-ForceBank (Total AxB, Active CxD): %dx%d, %dx%d",
-					&minNumRowMat, &minNumColumnMat, &minNumActiveMatPerColumn, &minNumActiveMatPerRow);
-			maxNumRowMat = minNumRowMat;
-			maxNumColumnMat = minNumColumnMat;
-			maxNumActiveMatPerColumn = minNumActiveMatPerColumn;
-			maxNumActiveMatPerRow = minNumActiveMatPerRow;
-			continue;
-		}
-
-		if (!strncmp("-ForceMat", line, strlen("-ForceMat"))) {
-			sscanf(line, "-ForceMat (Total AxB, Active CxD): %dx%d, %dx%d",
-					&minNumRowSubarray, &minNumColumnSubarray, &minNumActiveSubarrayPerColumn, &minNumActiveSubarrayPerRow);
-			maxNumRowSubarray = minNumRowSubarray;
-			maxNumColumnSubarray = minNumColumnSubarray;
-			maxNumActiveSubarrayPerColumn = minNumActiveSubarrayPerColumn;
-			maxNumActiveSubarrayPerRow = minNumActiveSubarrayPerRow;
-			continue;
-		}
-
-		if (!strncmp("-ForceMuxSenseAmp", line, strlen("-ForceMuxSenseAmp"))) {
-			sscanf(line, "-ForceMuxSenseAmp: %d", &minMuxSenseAmp);
-			maxMuxSenseAmp = minMuxSenseAmp;
-			continue;
-		}
-
-		if (!strncmp("-ForceMuxOutputLev1", line, strlen("-ForceMuxOutputLev1"))) {
-			sscanf(line, "-ForceMuxOutputLev1: %d", &minMuxOutputLev1);
-			maxMuxOutputLev1 = minMuxOutputLev1;
-			continue;
-		}
-
-		if (!strncmp("-ForceMuxOutputLev2", line, strlen("-ForceMuxOutputLev2"))) {
-			sscanf(line, "-ForceMuxOutputLev2: %d", &minMuxOutputLev2);
-			maxMuxOutputLev2 = minMuxOutputLev2;
-			continue;
-		}
-
-		if (!strncmp("-UseCactiAssumption", line, strlen("-UseCactiAssumption"))) {
-			sscanf(line, "-UseCactiAssumption: %s", tmp);
-			if (!strcmp(tmp, "Yes")) {
-				useCactiAssumption = true;
-				minNumActiveMatPerRow = maxNumColumnMat;
-				maxNumActiveMatPerRow = maxNumColumnMat;
-				minNumActiveMatPerColumn = 1;
-				maxNumActiveMatPerColumn = 1;
-				minNumRowSubarray = 2;
-				maxNumRowSubarray = 2;
-				minNumColumnSubarray = 2;
-				maxNumColumnSubarray = 2;
-				minNumActiveSubarrayPerRow = 2;
-				maxNumActiveSubarrayPerRow = 2;
-				minNumActiveSubarrayPerColumn = 2;
-				maxNumActiveSubarrayPerColumn = 2;
-			} else
-				useCactiAssumption = false;
-			continue;
-		}
-
-		if (!strncmp("-EnablePruning", line, strlen("-EnablePruning"))) {
-			sscanf(line, "-EnablePruning: %s", tmp);
-			if (!strcmp(tmp, "Yes"))
-				isPruningEnabled = true;
-			else
-				isPruningEnabled = false;
-			continue;
-		}
-
-		if (!strncmp("-BufferDesignOptimization", line, strlen("-BufferDesignOptimization"))) {
-			sscanf(line, "-BufferDesignOptimization: %s", tmp);
-			if (!strcmp(tmp, "latency")) {
-				minAreaOptimizationLevel = 0;
-				maxAreaOptimizationLevel = 0;
-			} else if (!strcmp(tmp, "area")) {
-				minAreaOptimizationLevel = 2;
-				maxAreaOptimizationLevel = 2;
-			} else {
-				minAreaOptimizationLevel = 1;
-				maxAreaOptimizationLevel = 1;
-			}
-		}
-
-		if (!strncmp("-FlashPageSize", line, strlen("-FlashPageSize"))) {
-			sscanf(line, "-FlashPageSize (Byte): %ld", &pageSize);
-			pageSize *= 8;	/* Byte to bit */
-			continue;
-		}
-
-		if (!strncmp("-FlashBlockSize", line, strlen("-FlashBlockSize"))) {
-			sscanf(line, "-FlashBlockSize (KB): %ld", &flashBlockSize);
-			flashBlockSize *= (8 * 1024);	/* KB to bit */
-			continue;
-		}
-
-		if (!strncmp("-ApplyReadLatencyConstraint", line, strlen("-ApplyReadLatencyConstraint"))) {
-			sscanf(line, "-ApplyReadLatencyConstraint: %lf", &readLatencyConstraint);
-			isConstraintApplied = true;
-			continue;
-		}
-
-		if (!strncmp("-ApplyWriteLatencyConstraint", line, strlen("-ApplyWriteLatencyConstraint"))) {
-			sscanf(line, "-ApplyWriteLatencyConstraint: %lf", &writeLatencyConstraint);
-			isConstraintApplied = true;
-			continue;
-		}
-
-		if (!strncmp("-ApplyReadDynamicEnergyConstraint", line, strlen("-ApplyReadDynamicEnergyConstraint"))) {
-			sscanf(line, "-ApplyReadDynamicEnergyConstraint: %lf", &readDynamicEnergyConstraint);
-			isConstraintApplied = true;
-			continue;
-		}
-
-		if (!strncmp("-ApplyWriteDynamicEnergyConstraint", line, strlen("-ApplyWriteDynamicEnergyConstraint"))) {
-			sscanf(line, "-ApplyWriteDynamicEnergyConstraint: %lf", &writeDynamicEnergyConstraint);
-			isConstraintApplied = true;
-			continue;
-		}
-
-		if (!strncmp("-ApplyLeakageConstraint", line, strlen("-ApplyLeakageConstraint"))) {
-			sscanf(line, "-ApplyLeakageConstraint: %lf", &leakageConstraint);
-			isConstraintApplied = true;
-			continue;
-		}
-
-		if (!strncmp("-ApplyAreaConstraint", line, strlen("-ApplyAreaConstraint"))) {
-			sscanf(line, "-ApplyAreaConstraint: %lf", &areaConstraint);
-			isConstraintApplied = true;
-			continue;
-		}
-
-		if (!strncmp("-ApplyReadEdpConstraint", line, strlen("-ApplyReadEdpConstraint"))) {
-			sscanf(line, "-ApplyReadEdpConstraint: %lf", &readEdpConstraint);
-			isConstraintApplied = true;
-			continue;
-		}
-
-		if (!strncmp("-ApplyWriteEdpConstraint", line, strlen("-ApplyWriteEdpConstraint"))) {
-			sscanf(line, "-ApplyWriteEdpConstraint: %lf", &writeEdpConstraint);
-			isConstraintApplied = true;
-			continue;
-		}
-	}
-
-	fclose(fp);
+                minAreaOptimizationLevel = 1;
+                maxAreaOptimizationLevel = 1;
+            }
+        }
+        
+        // Flash-specific parameters
+        if (config["FlashPageSize"]) {
+            pageSize = config["FlashPageSize"].as<long>() * 8;  // Byte to bit
+        }
+        
+        if (config["FlashBlockSize"]) {
+            flashBlockSize = config["FlashBlockSize"].as<long>() * (8 * 1024);  // KB to bit
+        }
+        
+        // Force configurations
+        if (config["ForceBank"]) {
+            YAML::Node forceBank = config["ForceBank"];
+            if (forceBank["TotalRows"])
+                minNumRowMat = maxNumRowMat = forceBank["TotalRows"].as<int>();
+            if (forceBank["TotalColumns"])
+                minNumColumnMat = maxNumColumnMat = forceBank["TotalColumns"].as<int>();
+            if (forceBank["ActiveRows"])
+                minNumActiveMatPerColumn = maxNumActiveMatPerColumn = forceBank["ActiveRows"].as<int>();
+            if (forceBank["ActiveColumns"])
+                minNumActiveMatPerRow = maxNumActiveMatPerRow = forceBank["ActiveColumns"].as<int>();
+        }
+        
+        if (config["ForceMat"]) {
+            YAML::Node forceMat = config["ForceMat"];
+            if (forceMat["TotalRows"])
+                minNumRowSubarray = maxNumRowSubarray = forceMat["TotalRows"].as<int>();
+            if (forceMat["TotalColumns"])
+                minNumColumnSubarray = maxNumColumnSubarray = forceMat["TotalColumns"].as<int>();
+            if (forceMat["ActiveRows"])
+                minNumActiveSubarrayPerColumn = maxNumActiveSubarrayPerColumn = forceMat["ActiveRows"].as<int>();
+            if (forceMat["ActiveColumns"])
+                minNumActiveSubarrayPerRow = maxNumActiveSubarrayPerRow = forceMat["ActiveColumns"].as<int>();
+        }
+        
+        if (config["ForceMuxSenseAmp"]) {
+            minMuxSenseAmp = maxMuxSenseAmp = config["ForceMuxSenseAmp"].as<int>();
+        }
+        
+        if (config["ForceMuxOutputLev1"]) {
+            minMuxOutputLev1 = maxMuxOutputLev1 = config["ForceMuxOutputLev1"].as<int>();
+        }
+        
+        if (config["ForceMuxOutputLev2"]) {
+            minMuxOutputLev2 = maxMuxOutputLev2 = config["ForceMuxOutputLev2"].as<int>();
+        }
+        
+        // CACTI Assumption
+        if (config["UseCactiAssumption"]) {
+            string use = config["UseCactiAssumption"].as<string>();
+            if (use == "Yes" || use == "yes" || use == "true") {
+                useCactiAssumption = true;
+                minNumActiveMatPerRow = maxNumColumnMat;
+                maxNumActiveMatPerRow = maxNumColumnMat;
+                minNumActiveMatPerColumn = 1;
+                maxNumActiveMatPerColumn = 1;
+                minNumRowSubarray = 2;
+                maxNumRowSubarray = 2;
+                minNumColumnSubarray = 2;
+                maxNumColumnSubarray = 2;
+                minNumActiveSubarrayPerRow = 2;
+                maxNumActiveSubarrayPerRow = 2;
+                minNumActiveSubarrayPerColumn = 2;
+                maxNumActiveSubarrayPerColumn = 2;
+            } else {
+                useCactiAssumption = false;
+            }
+        }
+        
+        // Constraints
+        if (config["Constraints"]) {
+            YAML::Node constraints = config["Constraints"];
+            if (constraints["ReadLatency"]) {
+                readLatencyConstraint = constraints["ReadLatency"].as<double>();
+                isConstraintApplied = true;
+            }
+            if (constraints["WriteLatency"]) {
+                writeLatencyConstraint = constraints["WriteLatency"].as<double>();
+                isConstraintApplied = true;
+            }
+            if (constraints["ReadDynamicEnergy"]) {
+                readDynamicEnergyConstraint = constraints["ReadDynamicEnergy"].as<double>();
+                isConstraintApplied = true;
+            }
+            if (constraints["WriteDynamicEnergy"]) {
+                writeDynamicEnergyConstraint = constraints["WriteDynamicEnergy"].as<double>();
+                isConstraintApplied = true;
+            }
+            if (constraints["Leakage"]) {
+                leakageConstraint = constraints["Leakage"].as<double>();
+                isConstraintApplied = true;
+            }
+            if (constraints["Area"]) {
+                areaConstraint = constraints["Area"].as<double>();
+                isConstraintApplied = true;
+            }
+            if (constraints["ReadEdp"]) {
+                readEdpConstraint = constraints["ReadEdp"].as<double>();
+                isConstraintApplied = true;
+            }
+            if (constraints["WriteEdp"]) {
+                writeEdpConstraint = constraints["WriteEdp"].as<double>();
+                isConstraintApplied = true;
+            }
+        }
+        
+        // Also support flat constraint fields for backwards compatibility
+        if (config["ApplyReadLatencyConstraint"]) {
+            readLatencyConstraint = config["ApplyReadLatencyConstraint"].as<double>();
+            isConstraintApplied = true;
+        }
+        if (config["ApplyWriteLatencyConstraint"]) {
+            writeLatencyConstraint = config["ApplyWriteLatencyConstraint"].as<double>();
+            isConstraintApplied = true;
+        }
+        if (config["ApplyReadDynamicEnergyConstraint"]) {
+            readDynamicEnergyConstraint = config["ApplyReadDynamicEnergyConstraint"].as<double>();
+            isConstraintApplied = true;
+        }
+        if (config["ApplyWriteDynamicEnergyConstraint"]) {
+            writeDynamicEnergyConstraint = config["ApplyWriteDynamicEnergyConstraint"].as<double>();
+            isConstraintApplied = true;
+        }
+        if (config["ApplyLeakageConstraint"]) {
+            leakageConstraint = config["ApplyLeakageConstraint"].as<double>();
+            isConstraintApplied = true;
+        }
+        if (config["ApplyAreaConstraint"]) {
+            areaConstraint = config["ApplyAreaConstraint"].as<double>();
+            isConstraintApplied = true;
+        }
+        if (config["ApplyReadEdpConstraint"]) {
+            readEdpConstraint = config["ApplyReadEdpConstraint"].as<double>();
+            isConstraintApplied = true;
+        }
+        if (config["ApplyWriteEdpConstraint"]) {
+            writeEdpConstraint = config["ApplyWriteEdpConstraint"].as<double>();
+            isConstraintApplied = true;
+        }
+        
+    } catch (const YAML::Exception& e) {
+        cout << "Error parsing YAML file: " << e.what() << endl;
+        exit(-1);
+    } catch (const std::exception& e) {
+        cout << "Error reading file: " << e.what() << endl;
+        exit(-1);
+    }
 }
 
 void InputParameter::PrintInputParameter() {
@@ -625,7 +771,7 @@ void InputParameter::PrintInputParameter() {
 		cout << "Content Addressable Memory" << endl;
 	}
 
-	cout << "Capacity: ";
+	cout << "Capacity   : ";
 	if (capacity < 1024 * 1024)
 		cout << capacity / 1024 << "KB" << endl;
 	else if (capacity < 1024 * 1024 * 1024)

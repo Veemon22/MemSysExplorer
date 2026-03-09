@@ -1,0 +1,21 @@
+# Cell Calibrated from:
+# Barth, John, et al. 
+# "A 45 nm SOI embedded DRAM macro for the POWER™ processor 32 MByte on-chip L3 cache." 
+# IEEE Journal of Solid-State Circuits 46.1 (2010): 64-75.
+
+MemCellType: eDRAM
+
+CellArea_F2: 33.19
+CellAspectRatio: 1.45
+
+ReadMode: voltage
+
+AccessType: CMOS
+AccessCMOSWidth_F: 1.0
+
+DRAMCellCapacitance_F: 18e-15
+
+MinSenseVoltage_mV: 10
+MaxStorageNodeDrop_V: 0.4
+
+RetentionTime_us: 40

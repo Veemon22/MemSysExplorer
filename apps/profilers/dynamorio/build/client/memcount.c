@@ -1339,40 +1339,82 @@ instrument_mem(void *drcontext, instrlist_t *ilist, instr_t *where, app_pc pc,
  * Direct instrumentation that calls our trace function immediately
  * instead of using the buffer system - much simpler and avoids buffer overflow
  */
+
 static void
-instrument_mem_direct(void *drcontext, instrlist_t *ilist, instr_t *where, app_pc pc,
-                     instr_t *memref_instr, int pos, bool write)
+instrument_mem_direct(void *drcontext, instrlist_t *ilist, instr_t *where,
+                      app_pc pc, instr_t *memref_instr, int pos, bool write)
 {
-    reg_id_t reg1;
+    reg_id_t reg_addr, reg_tmp;
     opnd_t ref;
-    
+
     if (write)
         ref = instr_get_dst(memref_instr, pos);
     else
         ref = instr_get_src(memref_instr, pos);
 
-    /* Reserve a register for address computation */
-    if (drreg_reserve_register(drcontext, ilist, where, NULL, &reg1) != DRREG_SUCCESS) {
+    /* Reserve TWO registers */
+    if (drreg_reserve_register(drcontext, ilist, where, NULL, &reg_addr) != DRREG_SUCCESS ||
+        drreg_reserve_register(drcontext, ilist, where, NULL, &reg_tmp) != DRREG_SUCCESS) {
         DR_ASSERT(false);
         return;
     }
 
-    /* Get memory address into register */
-    if (!drutil_insert_get_mem_addr(drcontext, ilist, where, ref, reg1, DR_REG_NULL)) {
+    /* Use both registers */
+    if (!drutil_insert_get_mem_addr(drcontext, ilist, where, ref,
+                                    reg_addr, reg_tmp)) {
         DR_ASSERT(false);
-        drreg_unreserve_register(drcontext, ilist, where, reg1);
+        drreg_unreserve_register(drcontext, ilist, where, reg_tmp);
+        drreg_unreserve_register(drcontext, ilist, where, reg_addr);
         return;
     }
 
-    /* Insert a clean call to our direct trace function */
-    dr_insert_clean_call(drcontext, ilist, where, (void *)direct_trace_write, 
-                        false, 4,
-                        opnd_create_reg(reg1),                 /* addr in register */
-                        OPND_CREATE_INT32(write),              /* write flag */
-                        OPND_CREATE_INT32(drutil_opnd_mem_size_in_bytes(ref, memref_instr)), /* size */
-                        OPND_CREATE_INTPTR(pc));               /* pc */
+    dr_insert_clean_call(drcontext, ilist, where,
+                         (void *)direct_trace_write,
+                         false, 4,
+                         opnd_create_reg(reg_addr),
+                         OPND_CREATE_INT32(write),
+                         OPND_CREATE_INT32(
+                             drutil_opnd_mem_size_in_bytes(ref, memref_instr)),
+                         OPND_CREATE_INTPTR(pc));
 
-    /* Restore register */
-    if (drreg_unreserve_register(drcontext, ilist, where, reg1) != DRREG_SUCCESS)
-        DR_ASSERT(false);
+    drreg_unreserve_register(drcontext, ilist, where, reg_tmp);
+    drreg_unreserve_register(drcontext, ilist, where, reg_addr);
 }
+
+// static void
+// instrument_mem_direct(void *drcontext, instrlist_t *ilist, instr_t *where, app_pc pc,
+//                      instr_t *memref_instr, int pos, bool write)
+// {
+//     reg_id_t reg1;
+//     opnd_t ref;
+    
+//     if (write)
+//         ref = instr_get_dst(memref_instr, pos);
+//     else
+//         ref = instr_get_src(memref_instr, pos);
+
+//     /* Reserve a register for address computation */
+//     if (drreg_reserve_register(drcontext, ilist, where, NULL, &reg1) != DRREG_SUCCESS) {
+//         DR_ASSERT(false);
+//         return;
+//     }
+
+//     /* Get memory address into register */
+//     if (!drutil_insert_get_mem_addr(drcontext, ilist, where, ref, reg1, DR_REG_NULL)) {
+//         DR_ASSERT(false);
+//         drreg_unreserve_register(drcontext, ilist, where, reg1);
+//         return;
+//     }
+
+//     /* Insert a clean call to our direct trace function */
+//     dr_insert_clean_call(drcontext, ilist, where, (void *)direct_trace_write, 
+//                         false, 4,
+//                         opnd_create_reg(reg1),                 /* addr in register */
+//                         OPND_CREATE_INT32(write),              /* write flag */
+//                         OPND_CREATE_INT32(drutil_opnd_mem_size_in_bytes(ref, memref_instr)), /* size */
+//                         OPND_CREATE_INTPTR(pc));               /* pc */
+
+//     /* Restore register */
+//     if (drreg_unreserve_register(drcontext, ilist, where, reg1) != DRREG_SUCCESS)
+//         DR_ASSERT(false);
+// }

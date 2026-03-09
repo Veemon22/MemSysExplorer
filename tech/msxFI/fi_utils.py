@@ -17,7 +17,7 @@ import importlib.util
 # DRAM calibration helpers (configurable via fi_config)
 _dram_calibration_scale_cache = {}
 
-def get_error_map(max_lvls_cell, refresh_t=None, vth_sigma=0.05, custom_vdd=None, custom_vpp=None):
+def get_error_map(max_lvls_cell, refresh_t=None, vth_sigma=0.05, custom_vdd=None, custom_wwl_swing=None):
   """
   Retrieve the correct per-storage-cell error map for the configured NVM settings according to the maximum levels-per-cell used
   OR generate DRAM error map based on physical parameters
@@ -26,7 +26,7 @@ def get_error_map(max_lvls_cell, refresh_t=None, vth_sigma=0.05, custom_vdd=None
   :param refresh_t: Refresh time in seconds for DRAM models
   :param vth_sigma: Standard deviation of Vth in Volts for DRAM fault rate calculation
   :param custom_vdd: Custom vdd in volts for DRAM models (optional)
-  :param custom_vpp: Custom vpp in volts for DRAM models (optional)
+  :param custom_wwl_swing: Custom wwl_swing in volts for DRAM models (optional)
   """
   if 'dram' in fi_config.mem_model:
     mem_data_path = os.path.dirname(__file__)
@@ -50,7 +50,7 @@ def get_error_map(max_lvls_cell, refresh_t=None, vth_sigma=0.05, custom_vdd=None
     tech_node_data = dram_params_data[selected_size]
     dist_args = (tech_node_data, fi_config.temperature, selected_size)
 
-    fault_prob = fault_rate_gen(dist_args, refresh_t, vth_sigma, custom_vdd, custom_vpp)
+    fault_prob = fault_rate_gen(dist_args, refresh_t, vth_sigma, custom_vdd, custom_wwl_swing)
     error_map = np.zeros(1, dtype=object)
     error_map[0] = np.zeros((2, 2))
     error_map[0][0, 1] = 0.0
@@ -92,7 +92,7 @@ def get_error_map(max_lvls_cell, refresh_t=None, vth_sigma=0.05, custom_vdd=None
   return error_map
 
  
-def fault_rate_gen(dist_args, refresh_time=None, vth_sigma=0.05, custom_vdd=None, custom_vpp=None):
+def fault_rate_gen(dist_args, refresh_time=None, vth_sigma=0.05, custom_vdd=None, custom_wwl_swing=None):
   """
   Randomly generate fault rate per experiment and storage cell config according to fault model
 
@@ -101,7 +101,7 @@ def fault_rate_gen(dist_args, refresh_time=None, vth_sigma=0.05, custom_vdd=None
   :param refresh_time: refresh time in seconds for DRAM (required for DRAM models)
   :param vth_sigma: standard deviation of Vth in Volts for DRAM fault rate calculation
   :param custom_vdd: custom vdd in volts for DRAM models (optional)
-  :param custom_vpp: custom vpp in volts for DRAM models (optional)
+  :param custom_wwl_swing: custom wwl_swing in volts for DRAM models (optional)
   """
   if 'rram' in fi_config.mem_model:
     x = dist_args[0]
@@ -129,10 +129,10 @@ def fault_rate_gen(dist_args, refresh_time=None, vth_sigma=0.05, custom_vdd=None
 
     median_Ioff = tech_node_data['Ioff'][selected_temp]
 
-    if custom_vpp is not None:
-      vpp = custom_vpp
+    if custom_wwl_swing is not None:
+      wwl_swing = custom_wwl_swing
       SS_V_per_dec = fi_config.SS * 1e-3
-      delta_v = vpp - vdd
+      delta_v = wwl_swing - vdd
       exponent = -delta_v / SS_V_per_dec
       median_Ioff = median_Ioff * (10**exponent)
 
@@ -495,7 +495,7 @@ def get_dram_type_config(mem_model):
   return configs.get(mem_model, configs['dram333t'])
 
 
-def calculate_fault_rate(mem_model, refresh_t_us, vth_sigma_mv, vdd=None, vpp=None):
+def calculate_fault_rate(mem_model, refresh_t_us, vth_sigma_mv, vdd=None, wwl_swing=None):
   """
   Calculate fault rate for given DRAM parameters.
 
@@ -504,7 +504,7 @@ def calculate_fault_rate(mem_model, refresh_t_us, vth_sigma_mv, vdd=None, vpp=No
       refresh_t_us: Refresh time in microseconds
       vth_sigma_mv: Vth sigma in millivolts
       vdd: Supply voltage in volts (optional)
-      vpp: Plate voltage in volts (optional)
+      wwl_swing: WWL swing in volts (optional)
 
   Returns:
       Fault rate as a percentage
@@ -521,7 +521,7 @@ def calculate_fault_rate(mem_model, refresh_t_us, vth_sigma_mv, vdd=None, vpp=No
       import contextlib
       with contextlib.redirect_stdout(open(os.devnull, 'w')):
         error_map = get_error_map(None, refresh_t=refresh_t, vth_sigma=vth_sigma,
-                                  custom_vdd=vdd, custom_vpp=vpp)
+                                  custom_vdd=vdd, custom_wwl_swing=wwl_swing)
 
       # Extract fault probability from error map (1->0 transition)
       fault_prob = error_map[0][1, 0]
@@ -541,7 +541,7 @@ def sweep_dram_params(mem_model, target_fr_pct, vth_sigma_mv=50):
       vth_sigma_mv: Vth sigma in mV (default: 50mV)
 
   Returns:
-      List of tuples (refresh_t_us, vdd, vpp, actual_fr_pct) that meet target
+      List of tuples (refresh_t_us, vdd, wwl_swing, actual_fr_pct) that meet target
   """
   mem_data_path = os.path.dirname(__file__)
   dram_params_path = os.path.join(mem_data_path, 'mem_data', fi_config.mem_dict[mem_model])
@@ -565,23 +565,77 @@ def sweep_dram_params(mem_model, target_fr_pct, vth_sigma_mv=50):
 
   print(f"\n{'='*70}")
   print(f"Sweeping {mem_model.upper()} parameters for target fault rate: {target_fr_pct}%")
-  print(f"Sweep ranges: refresh_t=[1us, 64ms], Vpp=[1.2V, 2.0V], Vdd={vdd_fixed}V")
+  print(f"Sweep ranges: refresh_t=[1us, 64ms], WWL_Swing=[0.8V, 2.0V], Vdd={vdd_fixed}V")
   print(f"{'='*70}\n")
 
   results = []
 
-  refresh_times = list(range(1, 1001))
-  refresh_times.extend(range(1010, 64001, 10))
-  vpps = np.arange(0.8, 2.05, 0.05).tolist()
+  refresh_times = np.array(
+      list(range(1, 1001)) + list(range(1010, 64001, 10)),
+      dtype=np.float64
+  )
+  refresh_times_s = refresh_times * 1e-6
+  wwl_swings = np.arange(0.8, 2.05, 0.05, dtype=np.float64)
 
-  for rt in refresh_times:
-      for vpp in vpps:
-          try:
-              fr = calculate_fault_rate(mem_model, rt, vth_sigma_mv, vdd=vdd_fixed, vpp=vpp)
-              if abs(fr - target_fr_pct) < target_fr_pct * 0.05:
-                  results.append((rt, vdd_fixed, vpp, fr))
-          except Exception:
-              pass
+  # Build DRAM constants once for vectorized sweep
+  dist_args = (tech_node_data, fi_config.temperature, selected_size)
+  available_temps = sorted(tech_node_data['Ioff'].keys())
+  temp_diffs = [abs(temp - fi_config.temperature) for temp in available_temps]
+  selected_temp = available_temps[temp_diffs.index(min(temp_diffs))]
+
+  kB = 1.380649e-23
+  q = 1.60217663e-19
+  cap_F = tech_node_data['CellCap']
+  cap_vdd_half = cap_F * vdd_fixed / 2.0
+  log_i_critical = np.log(cap_vdd_half / refresh_times_s)
+
+  vth_sigma = vth_sigma_mv / 1000.0
+  if vth_sigma <= 0:
+      raise ValueError("vth_sigma_mv must be positive")
+
+  type_config = get_dram_type_config(mem_model)
+  sigma_multiple = type_config['sigma_multiple']
+  vth_1sigma = spread_to_sigma(vth_sigma, sigma_multiple)
+
+  Vt = (kB * selected_temp) / q
+  n_factor = fi_config.SS * 1e-3 / (Vt * math.log(10))
+  sigma_ln_Ioff = vth_1sigma / (n_factor * Vt)
+
+  nominal_fault_rate = cdf_tail_for_sigma_multiple(sigma_multiple)
+  nominal_refresh_time = type_config['refresh_time'] * 1e-6
+  calibration_scale = compute_dram_calibration_scale(
+      dist_args,
+      vth_1sigma,
+      nominal_fault_rate,
+      nominal_refresh_time,
+      vdd_fixed,
+  )
+  median_ioff_base = tech_node_data['Ioff'][selected_temp] * calibration_scale
+  ss_v_per_dec = fi_config.SS * 1e-3
+
+  tolerance = max(target_fr_pct * 0.05, 1e-12)
+
+  for wwl_swing in wwl_swings:
+      try:
+          exponent = -(wwl_swing - vdd_fixed) / ss_v_per_dec
+          median_ioff = median_ioff_base * (10 ** exponent)
+          if not np.isfinite(median_ioff) or median_ioff <= 0:
+              continue
+
+          ln_mu = math.log(median_ioff)
+          z = (log_i_critical - ln_mu) / sigma_ln_Ioff
+          fr_pct = np.maximum(0.0, (1.0 - ss.norm.cdf(z)) * 100.0)
+
+          matches = np.where(np.abs(fr_pct - target_fr_pct) < tolerance)[0]
+          if matches.size == 0:
+              continue
+
+          results.extend([
+              (float(refresh_times[idx]), vdd_fixed, float(wwl_swing), float(fr_pct[idx]))
+              for idx in matches
+          ])
+      except Exception:
+          continue
 
   print(f"\n{'='*70}")
   print(f"Found {len(results)} configuration(s) matching target fault rate (±5%)")
@@ -590,30 +644,37 @@ def sweep_dram_params(mem_model, target_fr_pct, vth_sigma_mv=50):
   return results
 
 
-def filter_top_configs_per_vpp(results, target_fr, top_n=3):
+def filter_top_configs_per_wwl_swing(results, target_fr, top_n=3):
   """
-  Filter results to show only top N closest configurations per VPP value.
+  Filter results to show only top N closest configurations per WWL swing value.
 
   Args:
-      results: List of tuples (refresh_t, vdd, vpp, fr)
+      results: List of tuples (refresh_t, vdd, wwl_swing, fr)
       target_fr: Target fault rate for comparison
-      top_n: Number of top configurations to keep per VPP
+      top_n: Number of top configurations to keep per WWL swing
 
   Returns:
       Filtered list of tuples
   """
   from collections import defaultdict
 
-  vpp_groups = defaultdict(list)
+  wwl_swing_groups = defaultdict(list)
   for config in results:
-    vpp = config[2]
-    vpp_groups[vpp].append(config)
+    wwl_swing = config[2]
+    wwl_swing_groups[wwl_swing].append(config)
+
+  # Sort each WWL swing group internally by error, and compute min error for group ordering
+  wwl_swing_sorted_groups = []
+  for wwl_swing, configs in wwl_swing_groups.items():
+    configs_sorted = sorted(configs, key=lambda x: abs(x[3] - target_fr))
+    min_error = abs(configs_sorted[0][3] - target_fr)
+    wwl_swing_sorted_groups.append((min_error, wwl_swing, configs_sorted[:top_n]))
+
+  # Sort WWL swing groups by their minimum error (best match first)
+  wwl_swing_sorted_groups.sort(key=lambda x: x[0])
 
   filtered_results = []
-  for vpp in sorted(vpp_groups.keys()):
-    configs = vpp_groups[vpp]
-    configs_sorted = sorted(configs, key=lambda x: abs(x[3] - target_fr))
-    filtered_results.extend(configs_sorted[:top_n])
+  for _, _, configs in wwl_swing_sorted_groups:
+    filtered_results.extend(configs)
 
   return filtered_results
-

@@ -81,7 +81,7 @@ void SubArray::Initialize(long long _numRow, long long _numColumn, bool _multipl
 		}
 	}
 
-	if (cell->memCellType == DRAM || cell->memCellType == eDRAM) {
+	if (cell->memCellType == DRAM || cell->memCellType == eDRAM || cell->memCellType == eDRAM3T || cell->memCellType == eDRAM3T333) {
 		if (muxSenseAmp > 1) {
 			/* DRAM does not allow muxed bitline because of its destructive readout */
 			invalid = true;
@@ -190,7 +190,7 @@ void SubArray::Initialize(long long _numRow, long long _numColumn, bool _multipl
 	}
 
 	if (internalSenseAmp) {
-		if (cell->memCellType == SRAM || cell->memCellType == DRAM || cell->memCellType == eDRAM) {
+		if (cell->memCellType == SRAM || cell->memCellType == DRAM || cell->memCellType == eDRAM || cell->memCellType == eDRAM3T || cell->memCellType == eDRAM3T333) {
 			/* SRAM, DRAM, and eDRAM all use voltage sensing */
 			voltageSense = true;
 		} else if (cell->memCellType == MRAM || cell->memCellType == PCRAM || cell->memCellType == memristor || cell->memCellType == FBRAM || cell->memCellType == CTT || cell->memCellType == MLCCTT || cell->memCellType == FeFET || cell->memCellType == MLCFeFET || cell->memCellType == MLCRRAM)  {
@@ -198,7 +198,7 @@ void SubArray::Initialize(long long _numRow, long long _numColumn, bool _multipl
 		} else {/* NAND flash */
 			voltageSense = true;
 		}
-	} else if (cell->memCellType == DRAM || cell->memCellType == eDRAM) {
+	} else if (cell->memCellType == DRAM || cell->memCellType == eDRAM || cell->memCellType == eDRAM3T || cell->memCellType == eDRAM3T333) {
 		cout << "[Subarray] Error: DRAM does not support external sense amplifiers!" << endl;
 		exit(-1);
 	}
@@ -291,8 +291,8 @@ void SubArray::Initialize(long long _numRow, long long _numColumn, bool _multipl
 		capCellAccessW = CalculateDrainCap(((techW->featureSize <= 14*1e-9)? 2:1)*cell->widthAccessCMOS * techW->featureSize, NMOS, cell->widthInFeatureSize * tech->featureSize, *techW);
 		capCellAccessR = CalculateDrainCap(((techR->featureSize <= 14*1e-9)? 2:1)*cell->widthAccessCMOSR * techR->featureSize, NMOS, cell->widthInFeatureSize * tech->featureSize, *techR);
 		capWordline += MAX(CalculateGateCap(((techR->featureSize <= 14*1e-9)? 2:1)*cell->widthAccessCMOSR * techR->featureSize, *techR), CalculateGateCap(((techW->featureSize <= 14*1e-9)? 2:1)*cell->widthAccessCMOS * techW->featureSize, *techW)) * numColumn;
-		capBitline  += MAX(capCellAccessW, capCellAccessR) * numRow / 2;	/* Due to shared contact; added  */
-		voltagePrecharge = tech->vdd / 2;	/* DRAM read voltage is always half of vdd */
+		capBitline  += MAX(capCellAccessW, capCellAccessR) * numRow;
+		voltagePrecharge = tech->vdd;	/* DRAM read voltage is always half of vdd */
 	} else if (cell->memCellType == FBRAM){ /* Floating Body RAM */
 		resCellAccess = 0;
 		capCellAccess = CalculateFBRAMDrainCap(((tech->featureSize <= 14*1e-9)? 2:1)*cell->widthSOIDevice * tech->featureSize, *tech);
@@ -496,8 +496,6 @@ void SubArray::CalculateArea() {
 	} else {
 		double addWidth = 0, addHeight = 0;
 		double widthPeripherals = 0, heightPeripherals = 0;
-		double areaPeripherals = 0;
-		double areaCellArray = lenWordline * lenBitline;
 
 		width = lenWordline;
 		height = lenBitline;
@@ -594,16 +592,11 @@ void SubArray::CalculateLatency(double _rampInput) {
 					inputParameter->temperature, *tech);
 			double tau = (resCellAccess + resPullDown) * (capCellAccess + capBitline + bitlineMux.capForPreviousDelayCalculation)
 					+ resBitline * (bitlineMux.capForPreviousDelayCalculation + capBitline / 2);
-// Print in scientific notation with 6 decimal places
-//std::cout << std::scientific << std::setprecision(6);
-//std::cout << "tau = " << tau << " s" << std::endl;
 			tau *= log(voltagePrecharge / (voltagePrecharge - senseVoltage / 2));	/* one signal raises and the other drops, so senseVoltage/2 is enough */
-//std::cout << "tau = " << tau << " s" << std::endl;
 			double gm = CalculateTransconductance(((tech->featureSize <= 14*1e-9)? 2:1)*cell->widthAccessCMOS * tech->featureSize, NMOS, *tech);
 			double beta = 1 / (resPullDown * gm);
 			double bitlineRamp = 0;
-			bitlineDelay = horowitz(tau, 0, rowDecoder.rampOutput, &bitlineRamp);
-//std::cout << "bitline = " << bitlineDelay << " s" << std::endl;
+			bitlineDelay = horowitz(tau, beta, rowDecoder.rampOutput, &bitlineRamp);
 			bitlineMux.CalculateLatency(bitlineRamp);
 			if (internalSenseAmp) {
 				senseAmp.CalculateLatency(bitlineMuxDecoder.rampOutput);
@@ -617,7 +610,6 @@ void SubArray::CalculateLatency(double _rampInput) {
 					+ senseAmpMuxLev1.readLatency + senseAmpMuxLev2.readLatency;
 			/* assume symmetric read/write for SRAM bitline delay */
 			writeLatency = readLatency;
-//std::cout << "writelatency = " << writeLatency << " s" << std::endl;
 		} else if (cell->memCellType == DRAM || cell->memCellType == eDRAM) {
 			double cap = (capCellAccess + cell->capDRAMCell) * (capBitline + bitlineMux.capForPreviousDelayCalculation)
 					/ (capCellAccess + cell->capDRAMCell + capBitline + bitlineMux.capForPreviousDelayCalculation);
@@ -637,16 +629,6 @@ void SubArray::CalculateLatency(double _rampInput) {
 			/* assume symmetric read/write for DRAM/eDRAM bitline delay */
 			writeLatency = readLatency;
 		} else if (cell->memCellType == eDRAM3T || cell->memCellType == eDRAM3T333) {
-			/*
-			double capW = (capCellAccessW + cell->capDRAMCell) * (capBitline + bitlineMux.capForPreviousDelayCalculation)
-					/ (capCellAccessW + cell->capDRAMCell + capBitline + bitlineMux.capForPreviousDelayCalculation);
-			double capR = (capCellAccessR + cell->capDRAMCell) * (capBitline + bitlineMux.capForPreviousDelayCalculation)
-					/ (capCellAccessR + cell->capDRAMCell + capBitline + bitlineMux.capForPreviousDelayCalculation);
-			double resW = resBitline + resCellAccessW;
-			double resR = resBitline + resCellAccessR;
-			double tauW = 2.3 * resW * capW;
-			double tauR = 2.3 * resR * capR;
-			*/
 			// Write path
 			double totalCapW = capCellAccessW + cell->capDRAMCell + capBitline + bitlineMux.capForPreviousDelayCalculation;
 			double tauW = 2.3*(resCellAccessW * totalCapW
@@ -655,20 +637,9 @@ void SubArray::CalculateLatency(double _rampInput) {
 			double totalCapR = capCellAccessR + cell->capDRAMCell + capBitline + bitlineMux.capForPreviousDelayCalculation;
 			double tauR = 2.3*(resCellAccessR * totalCapR
 						+ resBitline * (bitlineMux.capForPreviousDelayCalculation + capBitline / 2.0));
-			
-// Print in scientific notation with 6 decimal places
-//std::cout << std::scientific << std::setprecision(6);
-//std::cout << "tauR = " << tauR << " s" << std::endl;
-//std::cout << "tauW = " << tauW << " s" << std::endl;
 			double bitlineRamp = 0;
-			double gm = CalculateTransconductance(((techW->featureSize <= 14*1e-9)? 2:1)*cell->widthAccessCMOS * techW->featureSize, NMOS, *techW);
-			double beta = 1 / (gm);
-			bitlineDelayW = horowitz(tauW, 0, rowDecoder.rampOutput, &bitlineRamp);
-			gm = CalculateTransconductance(((techR->featureSize <= 14*1e-9)? 2:1)*cell->widthAccessCMOSR * techR->featureSize, NMOS, *techR);
-			beta = 1 / (gm);
+			bitlineDelayW = horowitz(tauW, 0, rowDecoder.rampOutput, &bitlineRamp);			
 			bitlineDelayR = horowitz(tauR, 0, rowDecoder.rampOutput, &bitlineRamp);
-//std::cout << "bitlineR = " << bitlineDelayR << " s" << std::endl;
-//std::cout << "bitlineW = " << bitlineDelayW << " s" << std::endl;
 			senseAmp.CalculateLatency(bitlineRamp);
 			senseAmpMuxLev1.CalculateLatency(1e20);
 			senseAmpMuxLev2.CalculateLatency(senseAmpMuxLev1.rampOutput);
@@ -679,7 +650,6 @@ void SubArray::CalculateLatency(double _rampInput) {
 			readLatency = decoderLatency + bitlineDelayR + senseAmp.readLatency
 					+ senseAmpMuxLev1.readLatency + senseAmpMuxLev2.readLatency;
 			writeLatency = decoderLatency + bitlineDelayW;
-//std::cout << "writelatency = " << writeLatency << " s" << std::endl;
 		} else if (cell->memCellType == MRAM || cell->memCellType == PCRAM || cell->memCellType == memristor || cell->memCellType == FBRAM || cell->memCellType == FeFET || cell->memCellType == MLCFeFET || cell->memCellType == MLCRRAM) {
 			double bitlineRamp = 0;
 			if (cell->readMode == false) {	/* current-sensing */

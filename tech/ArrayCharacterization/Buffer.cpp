@@ -60,7 +60,7 @@ void Buffer::Initialize(long long _numRow, long long _numColumn) {
 
 void Buffer::CalculateArea() {
     double cellheight, cellwidth;
-    double xorheight, xorwidth;
+    double xorheight;
     
 	if (!initialized) {
 		cout << "[Buffer] Error: Require initialization first!" << endl;
@@ -71,21 +71,18 @@ void Buffer::CalculateArea() {
 		    cellheight = 1.52e-6;
 		    cellwidth = 1.54375e-6;
 		    xorheight = 2.166e-6;
-		    xorwidth = 2.166e-6;
 		}
 		else if (tech->featureSize >= 31e-9) {  /* 32nm */
 		    /* scaled from 45nm */
 			cellheight = 1.081e-6;
 			cellwidth = 1.098e-6;
 			xorheight = 1.54e-6;
-			xorwidth = 1.54e-6;
 		}
 		else {                                  /* below 22nm */
 		    /* scaled from 45nm */
 			cellheight = 0.743e-6;
 			cellwidth = 0.755e-6;
 			xorheight = 1.059e-6;
-			xorwidth = 1.059e-6;
 		}
 		
 		height = (cellheight + xorheight) * numRow;

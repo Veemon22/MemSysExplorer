@@ -40,6 +40,7 @@
 #include "global.h"
 #include "macros.h"
 #include <math.h>
+#include <yaml-cpp/yaml.h>
 
 MemCell::MemCell() {
 	// TODO Auto-generated constructor stub
@@ -102,392 +103,350 @@ MemCell::~MemCell() {
 
 void MemCell::ReadCellFromFile(const string & inputFile)
 {
-	FILE *fp = fopen(inputFile.c_str(), "r");
-	char line[5000];
-	char tmp[5000];
-
-	if (!fp) {
-		cout << inputFile << " cannot be found!\n";
-		exit(-1);
-	}
-
-	while (fscanf(fp, "%[^\n]\n", line) != EOF) {
-		if (!strncmp("-MemCellType", line, strlen("-MemCellType"))) {
-			sscanf(line, "-MemCellType: %s", tmp);
-			if (!strcmp(tmp, "SRAM"))
-				memCellType = SRAM;
-			else if (!strcmp(tmp, "DRAM"))
-				memCellType = DRAM;
-			else if (!strcmp(tmp, "eDRAM"))
-				memCellType = eDRAM;
-			else if (!strcmp(tmp, "eDRAM3T"))
-				memCellType = eDRAM3T;
-			else if (!strcmp(tmp, "eDRAM3T333"))
-				memCellType = eDRAM3T333;
-			else if (!strcmp(tmp, "MRAM"))
-				memCellType = MRAM;
-			else if (!strcmp(tmp, "PCRAM"))
-				memCellType = PCRAM;
-			else if (!strcmp(tmp, "FBRAM"))
-				memCellType = FBRAM;
-			else if (!strcmp(tmp, "memristor"))
-				memCellType = memristor;
-                        else if (!strcmp(tmp, "CTT"))
-                                memCellType = CTT;
-                        else if (!strcmp(tmp, "MLCCTT"))
-                                memCellType = MLCCTT;
-                        else if (!strcmp(tmp, "FeFET"))
-                                memCellType = FeFET;
-                        else if (!strcmp(tmp, "MLCFeFET"))
-                                memCellType = MLCFeFET;
-                        else if (!strcmp(tmp, "MLCRRAM"))
-                                memCellType = MLCRRAM;
-			else if (!strcmp(tmp, "SLCNAND"))
-				memCellType = SLCNAND;
-			else
-				memCellType = MLCNAND;
-			continue;
-		}
-		if (!strncmp("-ProcessNode", line, strlen("-ProcessNode"))) {
-			sscanf(line, "-ProcessNode: %d", &processNode);
-			continue;
-		}
-		if (!strncmp("-CellArea", line, strlen("-CellArea"))) {
-			sscanf(line, "-CellArea (F^2): %lf", &area);
-			continue;
-		}
-		if (!strncmp("-CellAspectRatio", line, strlen("-CellAspectRatio"))) {
-			sscanf(line, "-CellAspectRatio: %lf", &aspectRatio);
-			heightInFeatureSize = sqrt(area * aspectRatio);
-			widthInFeatureSize = sqrt(area / aspectRatio);
-			continue;
-		}
-
-		if (!strncmp("-ResistanceOnAtSetVoltage", line, strlen("-ResistanceOnAtSetVoltage"))) {
-			sscanf(line, "-ResistanceOnAtSetVoltage (ohm): %lf", &resistanceOnAtSetVoltage);
-			continue;
-		}
-		if (!strncmp("-ResistanceOffAtSetVoltage", line, strlen("-ResistanceOffAtSetVoltage"))) {
-			sscanf(line, "-ResistanceOffAtSetVoltage (ohm): %lf", &resistanceOffAtSetVoltage);
-			continue;
-		}
-		if (!strncmp("-ResistanceOnAtResetVoltage", line, strlen("-ResistanceOnAtResetVoltage"))) {
-			sscanf(line, "-ResistanceOnAtResetVoltage (ohm): %lf", &resistanceOnAtResetVoltage);
-			continue;
-		}
-		if (!strncmp("-ResistanceOffAtResetVoltage", line, strlen("-ResistanceOffAtResetVoltage"))) {
-			sscanf(line, "-ResistanceOffAtResetVoltage (ohm): %lf", &resistanceOffAtResetVoltage);
-			continue;
-		}
-		if (!strncmp("-ResistanceOnAtReadVoltage", line, strlen("-ResistanceOnAtReadVoltage"))) {
-			sscanf(line, "-ResistanceOnAtReadVoltage (ohm): %lf", &resistanceOnAtReadVoltage);
-			resistanceOn = resistanceOnAtReadVoltage;
-			continue;
-		}
-		if (!strncmp("-ResistanceOffAtReadVoltage", line, strlen("-ResistanceOffAtReadVoltage"))) {
-			sscanf(line, "-ResistanceOffAtReadVoltage (ohm): %lf", &resistanceOffAtReadVoltage);
-			resistanceOff = resistanceOffAtReadVoltage;
-			continue;
-		}
-		if (!strncmp("-ResistanceOnAtHalfReadVoltage", line, strlen("-ResistanceOnAtHalfReadVoltage"))) {
-			sscanf(line, "-ResistanceOnAtHalfReadVoltage (ohm): %lf", &resistanceOnAtHalfReadVoltage);
-			continue;
-		}
-		if (!strncmp("-ResistanceOffAtHalfReadVoltage", line, strlen("-ResistanceOffAtHalfReadVoltage"))) {
-			sscanf(line, "-ResistanceOffAtHalfReadVoltage (ohm): %lf", &resistanceOffAtHalfReadVoltage);
-			continue;
-		}
-		if (!strncmp("-ResistanceOnAtHalfResetVoltage", line, strlen("-ResistanceOnAtHalfResetVoltage"))) {
-			sscanf(line, "-ResistanceOnAtHalfResetVoltage (ohm): %lf", &resistanceOnAtHalfResetVoltage);
-			continue;
-		}
-
-		if (!strncmp("-ResistanceOn", line, strlen("-ResistanceOn"))) {
-			sscanf(line, "-ResistanceOn (ohm): %lf", &resistanceOn);
-			continue;
-		}
-		if (!strncmp("-ResistanceOff", line, strlen("-ResistanceOff"))) {
-			sscanf(line, "-ResistanceOff (ohm): %lf", &resistanceOff);
-			continue;
-		}
-		if (!strncmp("-CapacitanceOn", line, strlen("-CapacitanceOn"))) {
-			sscanf(line, "-CapacitanceOn (F): %lf", &capacitanceOn);
-			continue;
-		}
-		if (!strncmp("-CapacitanceOff", line, strlen("-CapacitanceOff"))) {
-			sscanf(line, "-CapacitanceOff (F): %lf", &capacitanceOff);
-			continue;
-		}
-
-		if (!strncmp("-GateOxThicknessFactor", line, strlen("-GateOxThicknessFactor"))) {
-			sscanf(line, "-GateOxThicknessFactor: %lf", &gateOxThicknessFactor);
-			continue;
-		}
-
-		if (!strncmp("-SOIDeviceWidth (F)", line, strlen("-SOIDeviceWidth (F)"))) {
-			sscanf(line, "-SOIDeviceWidth (F): %lf", &widthSOIDevice);
-			continue;
-		}
-
-		if (!strncmp("-ReadMode", line, strlen("-ReadMode"))) {
-			sscanf(line, "-ReadMode: %s", tmp);
-			if (!strcmp(tmp, "voltage"))
-				readMode = true;
-			else
-				readMode = false;
-			continue;
-		}
-		if (!strncmp("-ReadVoltage", line, strlen("-ReadVoltage"))) {
-			sscanf(line, "-ReadVoltage (V): %lf", &readVoltage);
-			continue;
-		}
-		if (!strncmp("-ReadCurrent", line, strlen("-ReadCurrent"))) {
-			sscanf(line, "-ReadCurrent (uA): %lf", &readCurrent);
-			readCurrent /= 1e6;
-			continue;
-		}
-		if (!strncmp("-ReadPower", line, strlen("-ReadPower"))) {
-			sscanf(line, "-ReadPower (uW): %lf", &readPower);
-			readPower /= 1e6;
-			continue;
-		}
-		if (!strncmp("-WordlineBoostRatio", line, strlen("-WordlineBoostRatio"))) {
-			sscanf(line, "-WordlineBoostRatio: %lf", &wordlineBoostRatio);
-			continue;
-		}
-		if (!strncmp("-MinSenseVoltage", line, strlen("-MinSenseVoltage"))) {
-			sscanf(line, "-MinSenseVoltage (mV): %lf", &minSenseVoltage);
-			minSenseVoltage /= 1e3;
-			continue;
-		}
-		if (!strncmp("-MaxStorageNodeDrop", line, strlen("-MaxStorageNodeDrop"))) {
-			sscanf(line, "-MaxStorageNodeDrop (V): %lf", &maxStorageNodeDrop);
-			continue;
-		}
-
-
-		if (!strncmp("-ResetMode", line, strlen("-ResetMode"))) {
-			sscanf(line, "-ResetMode: %s", tmp);
-			if (!strcmp(tmp, "voltage"))
-				resetMode = true;
-			else
-				resetMode = false;
-			continue;
-		}
-		if (!strncmp("-ResetVoltage", line, strlen("-ResetVoltage"))) {
-			sscanf(line, "-ResetVoltage (V): %lf", &resetVoltage);
-			continue;
-		}
-		if (!strncmp("-ResetCurrent", line, strlen("-ResetCurrent"))) {
-			sscanf(line, "-ResetCurrent (uA): %lf", &resetCurrent);
-			resetCurrent /= 1e6;
-			continue;
-		}
-		if (!strncmp("-ResetVoltage", line, strlen("-ResetVoltage"))) {
-			sscanf(line, "-ResetVoltage (V): %lf", &resetVoltage);
-			continue;
-		}
-		if (!strncmp("-ResetPulse", line, strlen("-ResetPulse"))) {
-			sscanf(line, "-ResetPulse (ns): %lf", &resetPulse);
-			resetPulse /= 1e9;
-			continue;
-		}
-		if (!strncmp("-ResetEnergy", line, strlen("-ResetEnergy"))) {
-			sscanf(line, "-ResetEnergy (pJ): %lf", &resetEnergy);
-			resetEnergy /= 1e12;
-			continue;
-		}
-
-		if (!strncmp("-SetMode", line, strlen("-SetMode"))) {
-			sscanf(line, "-SetMode: %s", tmp);
-			if (!strcmp(tmp, "voltage"))
-				setMode = true;
-			else
-				setMode = false;
-			continue;
-		}
-		if (!strncmp("-SetVoltage", line, strlen("-SetVoltage"))) {
-			sscanf(line, "-SetVoltage (V): %lf", &setVoltage);
-			continue;
-		}
-		if (!strncmp("-SetCurrent", line, strlen("-SetCurrent"))) {
-			sscanf(line, "-SetCurrent (uA): %lf", &setCurrent);
-			setCurrent /= 1e6;
-			continue;
-		}
-		if (!strncmp("-SetVoltage", line, strlen("-SetVoltage"))) {
-			sscanf(line, "-SetVoltage (V): %lf", &setVoltage);
-			continue;
-		}
-		if (!strncmp("-SetPulse", line, strlen("-SetPulse"))) {
-			sscanf(line, "-SetPulse (ns): %lf", &setPulse);
-			setPulse /= 1e9;
-			continue;
-		}
-		if (!strncmp("-SetEnergy", line, strlen("-SetEnergy"))) {
-			sscanf(line, "-SetEnergy (pJ): %lf", &setEnergy);
-			setEnergy /= 1e12;
-			continue;
-		}
-
-		if (!strncmp("-AccessType", line, strlen("-AccessType"))) {
-			sscanf(line, "-AccessType: %s", tmp);
-			if (!strcmp(tmp, "CMOS"))
-				accessType = CMOS_access;
-			else if (!strcmp(tmp, "BJT"))
-				accessType = BJT_access;
-			else if (!strcmp(tmp, "diode"))
-				accessType = diode_access;
-			else
-				accessType = none_access;
-			continue;
-		}
-
-		if (!strncmp("-AccessCMOSWidthR", line, strlen("-AccessCMOSWidthR"))) {
-			if (accessType != CMOS_access)
-				cout << "Warning: The input of CMOS access transistor width is ignored because the cell is not CMOS-accessed." << endl;
-			else
-				sscanf(line, "-AccessCMOSWidthR (F): %lf", &widthAccessCMOSR);
-			continue;
-		}
-
-		if (!strncmp("-AccessCMOSWidth", line, strlen("-AccessCMOSWidth"))) {
-			if (accessType != CMOS_access)
-				cout << "Warning: The input of CMOS access transistor width is ignored because the cell is not CMOS-accessed." << endl;
-			else
-				sscanf(line, "-AccessCMOSWidth (F): %lf", &widthAccessCMOS);
-			continue;
-		}
-
-		if (!strncmp("-VoltageDropAccessDevice", line, strlen("-VoltageDropAccessDevice"))) {
-			sscanf(line, "-VoltageDropAccessDevice (V): %lf", &voltageDropAccessDevice);
-			continue;
-		}
-
-		if (!strncmp("-LeakageCurrentAccessDevice", line, strlen("-LeakageCurrentAccessDevice"))) {
-			sscanf(line, "-LeakageCurrentAccessDevice (uA): %lf", &leakageCurrentAccessDevice);
-			leakageCurrentAccessDevice /= 1e6;
-			continue;
-		}
-
-		if (!strncmp("-DRAMCellCapacitance", line, strlen("-DRAMCellCapacitance"))) {
-			if (memCellType != DRAM && memCellType != eDRAM && memCellType != eDRAM3T && memCellType != eDRAM3T333)
-				cout << "Warning: The input of DRAM cell capacitance is ignored because the memory cell is not DRAM." << endl;
-			else
-				sscanf(line, "-DRAMCellCapacitance (F): %lf", &capDRAMCell);
-			continue;
-		}
-
-		if (!strncmp("-SRAMCellNMOSWidth", line, strlen("-SRAMCellNMOSWidth"))) {
-			if (memCellType != SRAM)
-				cout << "Warning: The input of SRAM cell NMOS width is ignored because the memory cell is not SRAM." << endl;
-			else
-				sscanf(line, "-SRAMCellNMOSWidth (F): %lf", &widthSRAMCellNMOS);
-			continue;
-		}
-
-		if (!strncmp("-SRAMCellPMOSWidth", line, strlen("-SRAMCellPMOSWidth"))) {
-			if (memCellType != SRAM)
-				cout << "Warning: The input of SRAM cell PMOS width is ignored because the memory cell is not SRAM." << endl;
-			else
-				sscanf(line, "-SRAMCellPMOSWidth (F): %lf", &widthSRAMCellPMOS);
-			continue;
-		}
-
-
-		if (!strncmp("-ReadFloating", line, strlen("-ReadFloating"))) {
-			sscanf(line, "-ReadFloating: %s", tmp);
-			if (!strcmp(tmp, "true"))
-				readFloating = true;
-			else
-				readFloating = false;
-			continue;
-		}
-
-		if (!strncmp("-FlashEraseVoltage (V)", line, strlen("-FlashEraseVoltage (V)"))) {
-			if (memCellType != SLCNAND && memCellType != MLCNAND)
-				cout << "Warning: The input of programming/erase voltage is ignored because the memory cell is not flash." << endl;
-			else
-				sscanf(line, "-FlashEraseVoltage (V): %lf", &flashEraseVoltage);
-			continue;
-		}
-
-		if (!strncmp("-FlashProgramVoltage (V)", line, strlen("-FlashProgramVoltage (V)"))) {
-			if (memCellType != SLCNAND && memCellType != MLCNAND)
-				cout << "Warning: The input of programming/program voltage is ignored because the memory cell is not flash." << endl;
-			else
-				sscanf(line, "-FlashProgramVoltage (V): %lf", &flashProgramVoltage);
-			continue;
-		}
-
-		if (!strncmp("-FlashPassVoltage (V)", line, strlen("-FlashPassVoltage (V)"))) {
-			if (memCellType != SLCNAND && memCellType != MLCNAND)
-				cout << "Warning: The input of pass voltage is ignored because the memory cell is not flash." << endl;
-			else
-				sscanf(line, "-FlashPassVoltage (V): %lf", &flashPassVoltage);
-			continue;
-		}
-
-		if (!strncmp("-FlashEraseTime", line, strlen("-FlashEraseTime"))) {
-			if (memCellType != SLCNAND && memCellType != MLCNAND)
-				cout << "Warning: The input of erase time is ignored because the memory cell is not flash." << endl;
-			else {
-				sscanf(line, "-FlashEraseTime (ms): %lf", &flashEraseTime);
-				flashEraseTime /= 1e3;
-			}
-			continue;
-		}
-
-		if (!strncmp("-FlashProgramTime", line, strlen("-FlashProgramTime"))) {
-			if (memCellType != SLCNAND && memCellType != MLCNAND)
-				cout << "Warning: The input of erase time is ignored because the memory cell is not flash." << endl;
-			else {
-				sscanf(line, "-FlashProgramTime (us): %lf", &flashProgramTime);
-				flashProgramTime /= 1e6;
-			}
-			continue;
-		}
-
-		if (!strncmp("-GateCouplingRatio", line, strlen("-GateCouplingRatio"))) {
-			if (memCellType != SLCNAND && memCellType != MLCNAND)
-				cout << "Warning: The input of gate coupling ratio (GCR) is ignored because the memory cell is not flash." << endl;
-			else {
-				sscanf(line, "-GateCouplingRatio: %lf", &gateCouplingRatio);
-			}
-			continue;
-		}
-
-		if (!strncmp("-RetentionTime", line, strlen("-RetentionTime"))) {
-			if (memCellType != DRAM && memCellType != eDRAM && memCellType != eDRAM3T && memCellType != eDRAM3T333)
-				cout << "Warning: The input of retention time is ignored because the cell is not eDRAM." << endl;
-			else {
-				sscanf(line, "-RetentionTime (us): %lf", &retentionTime);
-                retentionTime /= 1e6;
-            }
-			continue;
-		}
-
-        if (!strncmp("-InputFingers", line, strlen("-InputFingers"))) {
-            if (memCellType != MLCCTT && memCellType != MLCFeFET && memCellType != MLCRRAM)
-                cout << "Warning: this parameters is used only for MLC Sense Amplifiers." << endl;
-            else {
-                sscanf(line, "-InputFingers: %d", &nFingers);
-            }
-            continue;
+    try {
+        YAML::Node config = YAML::LoadFile(inputFile);
+        
+        // Basic Cell Properties
+        if (config["MemCellType"]) {
+            string cellType = config["MemCellType"].as<string>();
+            if (cellType == "SRAM")
+                memCellType = SRAM;
+            else if (cellType == "DRAM")
+                memCellType = DRAM;
+            else if (cellType == "eDRAM")
+                memCellType = eDRAM;
+            else if (cellType == "eDRAM3T")
+                memCellType = eDRAM3T;
+            else if (cellType == "eDRAM3T333")
+                memCellType = eDRAM3T333;
+            else if (cellType == "MRAM")
+                memCellType = MRAM;
+            else if (cellType == "PCRAM")
+                memCellType = PCRAM;
+            else if (cellType == "FBRAM")
+                memCellType = FBRAM;
+            else if (cellType == "memristor")
+                memCellType = memristor;
+            else if (cellType == "CTT")
+                memCellType = CTT;
+            else if (cellType == "MLCCTT")
+                memCellType = MLCCTT;
+            else if (cellType == "FeFET")
+                memCellType = FeFET;
+            else if (cellType == "MLCFeFET")
+                memCellType = MLCFeFET;
+            else if (cellType == "MLCRRAM")
+                memCellType = MLCRRAM;
+            else if (cellType == "SLCNAND")
+                memCellType = SLCNAND;
+            else
+                memCellType = MLCNAND;
         }
         
-        if (!strncmp("-CellLevels", line, strlen("-CellLevels"))) {
-            if (memCellType != MLCCTT && memCellType != MLCFeFET && memCellType != MLCRRAM)
-                cout << "Warning: this parameters is used only for MLC." << endl;
-            else {
-                sscanf(line, "-CellLevels: %lf", &nLvl);
-            }
-            continue;
+        if (config["ProcessNode"])
+            processNode = config["ProcessNode"].as<int>();
+            
+        if (config["CellArea_F2"])
+            area = config["CellArea_F2"].as<double>();
+            
+        if (config["CellAspectRatio"]) {
+            aspectRatio = config["CellAspectRatio"].as<double>();
+            heightInFeatureSize = sqrt(area * aspectRatio);
+            widthInFeatureSize = sqrt(area / aspectRatio);
         }
-                
-	}
-
-	fclose(fp);
+        
+        // Resistance Values
+        if (config["Resistance"]) {
+            YAML::Node resist = config["Resistance"];
+            if (resist["OnAtSetVoltage_ohm"])
+                resistanceOnAtSetVoltage = resist["OnAtSetVoltage_ohm"].as<double>();
+            if (resist["OffAtSetVoltage_ohm"])
+                resistanceOffAtSetVoltage = resist["OffAtSetVoltage_ohm"].as<double>();
+            if (resist["OnAtResetVoltage_ohm"])
+                resistanceOnAtResetVoltage = resist["OnAtResetVoltage_ohm"].as<double>();
+            if (resist["OffAtResetVoltage_ohm"])
+                resistanceOffAtResetVoltage = resist["OffAtResetVoltage_ohm"].as<double>();
+            if (resist["OnAtReadVoltage_ohm"]) {
+                resistanceOnAtReadVoltage = resist["OnAtReadVoltage_ohm"].as<double>();
+                resistanceOn = resistanceOnAtReadVoltage;
+            }
+            if (resist["OffAtReadVoltage_ohm"]) {
+                resistanceOffAtReadVoltage = resist["OffAtReadVoltage_ohm"].as<double>();
+                resistanceOff = resistanceOffAtReadVoltage;
+            }
+            if (resist["OnAtHalfReadVoltage_ohm"])
+                resistanceOnAtHalfReadVoltage = resist["OnAtHalfReadVoltage_ohm"].as<double>();
+            if (resist["OffAtHalfReadVoltage_ohm"])
+                resistanceOffAtHalfReadVoltage = resist["OffAtHalfReadVoltage_ohm"].as<double>();
+            if (resist["OnAtHalfResetVoltage_ohm"])
+                resistanceOnAtHalfResetVoltage = resist["OnAtHalfResetVoltage_ohm"].as<double>();
+        }
+        
+        // Also support flat resistance fields (backwards compatibility)
+        if (config["ResistanceOn_ohm"])
+            resistanceOn = config["ResistanceOn_ohm"].as<double>();
+        if (config["ResistanceOff_ohm"])
+            resistanceOff = config["ResistanceOff_ohm"].as<double>();
+        
+        // Capacitance
+        if (config["Capacitance"]) {
+            YAML::Node cap = config["Capacitance"];
+            if (cap["On_F"])
+                capacitanceOn = cap["On_F"].as<double>();
+            if (cap["Off_F"])
+                capacitanceOff = cap["Off_F"].as<double>();
+        }
+        
+        // Also support flat capacitance fields
+        if (config["CapacitanceOn_F"])
+            capacitanceOn = config["CapacitanceOn_F"].as<double>();
+        if (config["CapacitanceOff_F"])
+            capacitanceOff = config["CapacitanceOff_F"].as<double>();
+        
+        if (config["GateOxThicknessFactor"])
+            gateOxThicknessFactor = config["GateOxThicknessFactor"].as<double>();
+            
+        if (config["SOIDeviceWidth_F"])
+            widthSOIDevice = config["SOIDeviceWidth_F"].as<double>();
+        
+        // Read Operation
+        if (config["Read"]) {
+            YAML::Node read = config["Read"];
+            if (read["Mode"]) {
+                string mode = read["Mode"].as<string>();
+                readMode = (mode == "voltage");
+            }
+            if (read["Voltage_V"])
+                readVoltage = read["Voltage_V"].as<double>();
+            if (read["Current_uA"])
+                readCurrent = read["Current_uA"].as<double>() / 1e6;
+            if (read["Power_uW"])
+                readPower = read["Power_uW"].as<double>() / 1e6;
+        }
+        
+        if (config["WordlineBoostRatio"])
+            wordlineBoostRatio = config["WordlineBoostRatio"].as<double>();
+            
+        if (config["MinSenseVoltage_mV"])
+            minSenseVoltage = config["MinSenseVoltage_mV"].as<double>() / 1e3;
+            
+        if (config["MaxStorageNodeDrop_V"])
+            maxStorageNodeDrop = config["MaxStorageNodeDrop_V"].as<double>();
+        
+        // Reset Operation
+        if (config["Reset"]) {
+            YAML::Node reset = config["Reset"];
+            if (reset["Mode"]) {
+                string mode = reset["Mode"].as<string>();
+                resetMode = (mode == "voltage");
+            }
+            if (reset["Voltage_V"])
+                resetVoltage = reset["Voltage_V"].as<double>();
+            if (reset["Current_uA"])
+                resetCurrent = reset["Current_uA"].as<double>() / 1e6;
+            if (reset["Pulse_ns"])
+                resetPulse = reset["Pulse_ns"].as<double>() / 1e9;
+            if (reset["Energy_pJ"])
+                resetEnergy = reset["Energy_pJ"].as<double>() / 1e12;
+        }
+        
+        // Set Operation
+        if (config["Set"]) {
+            YAML::Node set = config["Set"];
+            if (set["Mode"]) {
+                string mode = set["Mode"].as<string>();
+                setMode = (mode == "voltage");
+            }
+            if (set["Voltage_V"])
+                setVoltage = set["Voltage_V"].as<double>();
+            if (set["Current_uA"])
+                setCurrent = set["Current_uA"].as<double>() / 1e6;
+            if (set["Pulse_ns"])
+                setPulse = set["Pulse_ns"].as<double>() / 1e9;
+            if (set["Energy_pJ"])
+                setEnergy = set["Energy_pJ"].as<double>() / 1e12;
+        }
+        
+        // Access Device
+        if (config["Access"]) {
+            YAML::Node access = config["Access"];
+            if (access["Type"]) {
+                string type = access["Type"].as<string>();
+                if (type == "CMOS")
+                    accessType = CMOS_access;
+                else if (type == "BJT")
+                    accessType = BJT_access;
+                else if (type == "diode")
+                    accessType = diode_access;
+                else
+                    accessType = none_access;
+            }
+            if (access["CMOSWidth_F"]) {
+                if (accessType != CMOS_access)
+                    cout << "Warning: CMOS width ignored (not CMOS-accessed)" << endl;
+                else
+                    widthAccessCMOS = access["CMOSWidth_F"].as<double>();
+            }
+            if (access["CMOSWidthR_F"]) {
+                if (accessType != CMOS_access)
+                    cout << "Warning: CMOS width R ignored (not CMOS-accessed)" << endl;
+                else
+                    widthAccessCMOSR = access["CMOSWidthR_F"].as<double>();
+            }
+            if (access["VoltageDropAccessDevice_V"])
+                voltageDropAccessDevice = access["VoltageDropAccessDevice_V"].as<double>();
+            if (access["LeakageCurrentAccessDevice_uA"])
+                leakageCurrentAccessDevice = access["LeakageCurrentAccessDevice_uA"].as<double>() / 1e6;
+        }
+        
+        // Also support flat access fields
+        if (config["AccessType"]) {
+            string type = config["AccessType"].as<string>();
+            if (type == "CMOS")
+                accessType = CMOS_access;
+            else if (type == "BJT")
+                accessType = BJT_access;
+            else if (type == "diode")
+                accessType = diode_access;
+            else
+                accessType = none_access;
+        }
+        if (config["AccessCMOSWidth_F"]) {
+            if (accessType != CMOS_access)
+                cout << "Warning: CMOS width ignored (not CMOS-accessed)" << endl;
+            else
+                widthAccessCMOS = config["AccessCMOSWidth_F"].as<double>();
+        }
+        if (config["AccessCMOSWidthR_F"]) {
+            if (accessType != CMOS_access)
+                cout << "Warning: CMOS width R ignored (not CMOS-accessed)" << endl;
+            else
+                widthAccessCMOSR = config["AccessCMOSWidthR_F"].as<double>();
+        }
+        if (config["VoltageDropAccessDevice_V"])
+            voltageDropAccessDevice = config["VoltageDropAccessDevice_V"].as<double>();
+        if (config["LeakageCurrentAccessDevice_uA"])
+            leakageCurrentAccessDevice = config["LeakageCurrentAccessDevice_uA"].as<double>() / 1e6;
+        
+        // Additional Properties
+        if (config["ReadFloating"]) {
+            readFloating = config["ReadFloating"].as<bool>();
+        }
+        
+        // DRAM specific
+        if (config["DRAMCellCapacitance_F"]) {
+            if (memCellType != DRAM && memCellType != eDRAM && 
+                memCellType != eDRAM3T && memCellType != eDRAM3T333)
+                cout << "Warning: DRAM capacitance ignored (not DRAM)" << endl;
+            else
+                capDRAMCell = config["DRAMCellCapacitance_F"].as<double>();
+        }
+        
+        // SRAM specific
+        if (config["SRAMCellNMOSWidth_F"]) {
+            if (memCellType != SRAM)
+                cout << "Warning: SRAM NMOS width ignored (not SRAM)" << endl;
+            else
+                widthSRAMCellNMOS = config["SRAMCellNMOSWidth_F"].as<double>();
+        }
+        
+        if (config["SRAMCellPMOSWidth_F"]) {
+            if (memCellType != SRAM)
+                cout << "Warning: SRAM PMOS width ignored (not SRAM)" << endl;
+            else
+                widthSRAMCellPMOS = config["SRAMCellPMOSWidth_F"].as<double>();
+        }
+        
+        // Flash specific
+        if (config["Flash"]) {
+            YAML::Node flash = config["Flash"];
+            if (memCellType != SLCNAND && memCellType != MLCNAND) {
+                cout << "Warning: Flash parameters ignored (not Flash)" << endl;
+            } else {
+                if (flash["EraseVoltage_V"])
+                    flashEraseVoltage = flash["EraseVoltage_V"].as<double>();
+                if (flash["ProgramVoltage_V"])
+                    flashProgramVoltage = flash["ProgramVoltage_V"].as<double>();
+                if (flash["PassVoltage_V"])
+                    flashPassVoltage = flash["PassVoltage_V"].as<double>();
+                if (flash["EraseTime_ms"])
+                    flashEraseTime = flash["EraseTime_ms"].as<double>() / 1e3;
+                if (flash["ProgramTime_us"])
+                    flashProgramTime = flash["ProgramTime_us"].as<double>() / 1e6;
+                if (flash["GateCouplingRatio"])
+                    gateCouplingRatio = flash["GateCouplingRatio"].as<double>();
+            }
+        }
+        
+        // Also support flat flash fields
+        if (config["FlashEraseVoltage_V"]) {
+            if (memCellType != SLCNAND && memCellType != MLCNAND)
+                cout << "Warning: Flash erase voltage ignored (not Flash)" << endl;
+            else
+                flashEraseVoltage = config["FlashEraseVoltage_V"].as<double>();
+        }
+        if (config["FlashProgramVoltage_V"]) {
+            if (memCellType != SLCNAND && memCellType != MLCNAND)
+                cout << "Warning: Flash program voltage ignored (not Flash)" << endl;
+            else
+                flashProgramVoltage = config["FlashProgramVoltage_V"].as<double>();
+        }
+        if (config["FlashPassVoltage_V"]) {
+            if (memCellType != SLCNAND && memCellType != MLCNAND)
+                cout << "Warning: Flash pass voltage ignored (not Flash)" << endl;
+            else
+                flashPassVoltage = config["FlashPassVoltage_V"].as<double>();
+        }
+        if (config["FlashEraseTime_ms"]) {
+            if (memCellType != SLCNAND && memCellType != MLCNAND)
+                cout << "Warning: Flash erase time ignored (not Flash)" << endl;
+            else
+                flashEraseTime = config["FlashEraseTime_ms"].as<double>() / 1e3;
+        }
+        if (config["FlashProgramTime_us"]) {
+            if (memCellType != SLCNAND && memCellType != MLCNAND)
+                cout << "Warning: Flash program time ignored (not Flash)" << endl;
+            else
+                flashProgramTime = config["FlashProgramTime_us"].as<double>() / 1e6;
+        }
+        if (config["GateCouplingRatio"]) {
+            if (memCellType != SLCNAND && memCellType != MLCNAND)
+                cout << "Warning: Gate coupling ratio ignored (not Flash)" << endl;
+            else
+                gateCouplingRatio = config["GateCouplingRatio"].as<double>();
+        }
+        
+        // Retention time
+        if (config["RetentionTime_us"]) {
+            if (memCellType != DRAM && memCellType != eDRAM && 
+                memCellType != eDRAM3T && memCellType != eDRAM3T333)
+                cout << "Warning: Retention time ignored (not DRAM)" << endl;
+            else
+                retentionTime = config["RetentionTime_us"].as<double>() / 1e6;
+        }
+        
+        // MLC specific
+        if (config["InputFingers"]) {
+            if (memCellType != MLCCTT && memCellType != MLCFeFET && memCellType != MLCRRAM)
+                cout << "Warning: InputFingers used only for MLC SA" << endl;
+            else
+                nFingers = config["InputFingers"].as<int>();
+        }
+        
+        if (config["CellLevels"]) {
+            if (memCellType != MLCCTT && memCellType != MLCFeFET && memCellType != MLCRRAM)
+                cout << "Warning: CellLevels used only for MLC" << endl;
+            else
+                nLvl = config["CellLevels"].as<double>();
+        }
+        
+    } catch (const YAML::Exception& e) {
+        cout << "Error parsing YAML file: " << e.what() << endl;
+        exit(-1);
+    } catch (const std::exception& e) {
+        cout << "Error reading file: " << e.what() << endl;
+        exit(-1);
+    }
 }
 
 void MemCell::ApplyPVT() {
@@ -808,33 +767,31 @@ void MemCell::PrintCell()
 			cout << "Access Type: None Access Device" << endl;
 		}
 	} else if (memCellType == SRAM) {
-		cout << "Access Transistor Width: " << widthAccessCMOS << "F" << endl;
-		cout << "NMOS Width: " << widthSRAMCellNMOS << "F" << endl;
-		cout << "PMOS Width: " << widthSRAMCellPMOS << "F" << endl;
-		cout << "Peripheral Roadmap: " << tech->deviceRoadmap << endl;
-		cout << "Peripheral Node: " << tech->featureSizeInNano << "nm" << endl;
-		cout << "VDD: " << tech->vdd << "V" << endl;
-		cout << "VPP: " << tech->vpp << "V" << endl;
+		cout << "SRAM Cell Access Transistor Width: " << widthAccessCMOS << "F" << endl;
+		cout << "SRAM Cell NMOS Width: " << widthSRAMCellNMOS << "F" << endl;
+		cout << "SRAM Cell PMOS Width: " << widthSRAMCellPMOS << "F" << endl;
+		cout << "SRAM Cell Peripheral Roadmap: " << tech->deviceRoadmap << endl;
+		cout << "SRAM Cell Peripheral Node: " << tech->featureSizeInNano << "nm" << endl;
+		cout << "SRAM Cell VDD: " << tech->vdd << "V" << endl;
 		cout << "Temperature: " << cell->temperature << "K" << endl;
 	} else if (memCellType == DRAM || memCellType == eDRAM) {
-		cout << "Access Transistor Width: " << widthAccessCMOS << "F" << endl;
-		cout << "Peripheral Roadmap: " << tech->deviceRoadmap << endl;
-		cout << "Peripheral Node: " << tech->featureSizeInNano << "nm" << endl;
-		cout << "VDD: " << tech->vdd << "V" << endl;
-		cout << "VPP: " << tech->vpp << "V" << endl;
-		cout << "VPP: " << tech->vpp << "V" << endl;
+		cout << "DRAM Cell Access Transistor Width: " << widthAccessCMOS << "F" << endl;
+		cout << "DRAM Cell Peripheral Roadmap: " << tech->deviceRoadmap << endl;
+		cout << "DRAM Cell Peripheral Node: " << tech->featureSizeInNano << "nm" << endl;
+		cout << "DRAM Cell VDD: " << tech->vdd << "V" << endl;
+		cout << "DRAM Cell WL_SWING: " << tech->vpp << "V" << endl;
 		cout << "Temperature: " << cell->temperature << "K" << endl;
 	} else if (memCellType == eDRAM3T || memCellType == eDRAM3T333) {
-		cout << "Write Access Transistor Width: " << widthAccessCMOS << "F" << endl;
-		cout << "Read Access Transistor Width: " << widthAccessCMOSR << "F" << endl;
-		cout << "Peripheral Roadmap: " << tech->deviceRoadmap << endl;
-		cout << "Write Access Roadmap: " << techW->deviceRoadmap << endl;
-		cout << "Read Access Roadmap: " << techR->deviceRoadmap << endl;
-		cout << "Peripheral Node: " << tech->featureSizeInNano << "nm" << endl;
-		cout << "Write Access Node: " << techW->featureSizeInNano << "nm" << endl;
-		cout << "Read Access Node: " << techR->featureSizeInNano << "nm" << endl;
-		cout << "VDD: " << tech->vdd << "V" << endl;
-		cout << "VPP: " << techW->vpp << "V" << endl;
+		cout << "3T DRAM Cell Write Access Transistor Width: " << widthAccessCMOS << "F" << endl;
+		cout << "3T DRAM Cell Read Access Transistor Width: " << widthAccessCMOSR << "F" << endl;
+		cout << "3T DRAM Cell Peripheral Roadmap: " << tech->deviceRoadmap << endl;
+		cout << "3T DRAM Cell Write Access Roadmap: " << techW->deviceRoadmap << endl;
+		cout << "3T DRAM Cell Read Access Roadmap: " << techR->deviceRoadmap << endl;
+		cout << "3T DRAM Cell Peripheral Node: " << tech->featureSizeInNano << "nm" << endl;
+		cout << "3T DRAM Cell Write Access Node: " << techW->featureSizeInNano << "nm" << endl;
+		cout << "3T DRAM Cell Read Access Node: " << techR->featureSizeInNano << "nm" << endl;
+		cout << "3T DRAM Cell VDD: " << tech->vdd << "V" << endl;
+		cout << "3T DRAM Cell WWL_SWING: " << techW->vpp << "V" << endl;
 		cout << "Temperature: " << cell->temperature << "K" << endl;
 	} else if (memCellType == SLCNAND) {
 		cout << "Pass Voltage       : " << flashPassVoltage << "V" << endl;

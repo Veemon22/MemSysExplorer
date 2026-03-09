@@ -1,0 +1,21 @@
+# Cell Calibrated from:
+# Butt, N., et al. 
+# "A 0.039 um² high performance eDRAM cell based on 32nm High-K/Metal SOI technology." 
+# International Electron Devices Meeting. IEEE, 2010.
+
+MemCellType: eDRAM
+
+CellArea_F2: 38.48
+CellAspectRatio: 1.5
+
+ReadMode: voltage
+
+AccessType: CMOS
+AccessCMOSWidth_F: 1.0
+
+DRAMCellCapacitance_F: 18e-15
+
+MinSenseVoltage_mV: 10
+MaxStorageNodeDrop_V: 0.4
+
+RetentionTime_us: 40

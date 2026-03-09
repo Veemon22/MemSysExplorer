@@ -41,6 +41,7 @@
 #include "BankWithHtree.h"
 #include "BankWithoutHtree.h"
 #include "Wire.h"
+#include <yaml-cpp/yaml.h>
 
 class Result {
 public:
@@ -51,8 +52,10 @@ public:
 	void print();
 	void printAsCache(Result &tagBank, CacheAccessMode cacheAccessMode);
 	void reset();
-	void printToCsvFile(ofstream &outputFile);
-	void printAsCacheToCsvFile(Result &tagBank, CacheAccessMode cacheAccessMode, ofstream &outputFile);
+	void printToYamlFile(ofstream &outputFile);
+	void printAsCacheToYamlFile(Result &tagBank, CacheAccessMode cacheAccessMode, ofstream &outputFile);
+	YAML::Node toYamlNode();
+	YAML::Node toYamlNodeAsCache(Result &tagBank, CacheAccessMode cacheAccessMode);
 	void compareAndUpdate(Result &newResult);
 
 	OptimizationTarget optimizationTarget;	/* Exploration should not be assigned here */

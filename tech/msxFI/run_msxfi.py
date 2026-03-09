@@ -10,6 +10,40 @@ import argparse
 import torch
 import random
 
+_USE_COLOR = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+RED = '\033[91m' if _USE_COLOR else ''
+BOLD = '\033[1m' if _USE_COLOR else ''
+RESET = '\033[0m' if _USE_COLOR else ''
+FAULT_MARKER = '' if _USE_COLOR else ' (*)'
+
+
+def print_matrix_sample(matrix, rows, cols, fault_mask=None):
+    """Print a matrix sample, highlighting faulty cells in red (or with * marker)."""
+    sub = matrix[:rows, :cols]
+    if fault_mask is None or not np.any(fault_mask[:rows, :cols]):
+        print(sub)
+        return
+
+    mask = fault_mask[:rows, :cols]
+    col_widths = []
+    for c in range(cols):
+        w = max(len(f"{sub[r, c]: .8g}") for r in range(rows))
+        col_widths.append(max(w, 10))
+
+    for r in range(rows):
+        cells = []
+        for c in range(cols):
+            val_str = f"{sub[r, c]: .8g}".rjust(col_widths[c])
+            if mask[r, c]:
+                cells.append(f"{RED}{BOLD}{val_str}{RESET}{FAULT_MARKER}")
+            else:
+                pad = ' ' * len(FAULT_MARKER)
+                cells.append(f"{val_str}{pad}")
+        prefix = "[[" if r == 0 else " ["
+        suffix = "]]" if r == rows - 1 else "]"
+        print(f"{prefix}{' '.join(cells)}{suffix}")
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run NVM/DRAM fault injection experiments.")
     parser.add_argument('--mode', type=str, default='rram_mlc', 
@@ -21,10 +55,10 @@ def parse_args():
                         help="Standard deviation of threshold voltage (Vth) in mV for DRAM fault rate calculation (default: 50mV).")
     parser.add_argument('--vdd', type=float,
                         help="Custom vdd in volts for DRAM modes. If not provided, uses default vdd from pickle file.")
-    parser.add_argument('--vpp', type=float,
-                        help="Custom Vpp in volts for DRAM modes. If not provided, uses default vpp from pickle file.")
+    parser.add_argument('--wwl_swing', type=float,
+                        help="Custom WWL Swing in volts for DRAM modes. If not provided, uses default wwl_swing from pickle file.")
     parser.add_argument('--target_fr', type=float,
-                        help="Target fault rate (in percentage, e.g., 0.1 for 0.1%%). Enables sweep mode for refresh_t, vpp, and vdd.")
+                        help="Target fault rate (in percentage, e.g., 0.1 for 0.1%%). Enables sweep mode for refresh_t, wwl_swing, and vdd.")
     # MLC specific
     parser.add_argument('--rep_conf', nargs='*', default=[8, 8],
                         help="Array of number of levels per cell used for storage per data value, e.g.: --rep_conf 8 8")
@@ -49,7 +83,9 @@ def parse_args():
     parser.add_argument('--model_def', type=str, default=None,
                         help="Path to the Python file containing the model class definition (required for DNN modes).")
     parser.add_argument('--model_class', type=str, default=None,
-                        help="Name of the model class or constructor function in the model definition file.", choices=['LeNet', 'ResNet18'])
+                        help="Name of the model class or constructor function in the model definition file.")
+    parser.add_argument('--num_classes', type=int, default=10,
+                        help="Number of output classes for model constructor (default: 10).")
 
     return parser.parse_args()
 
@@ -82,8 +118,8 @@ def generate_output_filename(model_path, mem_model, args):
         filename_parts.append(f"rt{args.refresh_t}")
         if args.vdd is not None:
             filename_parts.append(f"vdd{args.vdd}")
-        if args.vpp is not None:
-            filename_parts.append(f"vpp{args.vpp}")
+        if args.wwl_swing is not None:
+            filename_parts.append(f"wwl_swing{args.wwl_swing}")
 
     filename = "_".join(filename_parts) + ext
 
@@ -99,7 +135,8 @@ def main():
         return
 
     import msxFI.fi_config as fi_config
-    from msxFI.fi_utils import validate_config, sweep_dram_params, filter_top_configs_per_vpp
+    from msxFI.fi_utils import validate_config, sweep_dram_params, filter_top_configs_per_wwl_swing, get_q_type_bit_width
+    from msxFI.data_transforms import convert_mlc_mat, convert_f_mat, get_afloat_bias
 
     if args.mode not in fi_config.mem_dict:
         print(f"Error: Unknown memory model '{args.mode}'")
@@ -116,22 +153,22 @@ def main():
         results = sweep_dram_params(args.mode, args.target_fr, args.vth_sigma)
 
         if results:
-            filtered = filter_top_configs_per_vpp(results, args.target_fr, top_n=3)
+            filtered = filter_top_configs_per_wwl_swing(results, args.target_fr, top_n=3)
 
-            print(f"\nTop configurations (showing up to 3 closest matches per Vpp):")
+            print(f"\nTop configurations (showing up to 3 closest matches per WWL Swing):")
             print(f"Total configurations found: {len(results)}, displaying: {len(filtered)}")
-            print(f"\n{'Vpp (V)':<10}{'Refresh (us)':<15}{'Fault Rate (%)':<18}{'Error (%)':<12}")
+            print(f"\n{'WWL Swing (V)':<10}{'Refresh (us)':<15}{'Fault Rate (%)':<18}{'Error (%)':<12}")
             print("-" * 65)
 
-            current_vpp = None
-            for rt, _, vpp, fr in filtered:
+            current_wwl_swing = None
+            for rt, _, wwl_swing, fr in filtered:
                 error = abs(fr - args.target_fr)
-                if vpp != current_vpp:
-                    if current_vpp is not None:
+                if wwl_swing != current_wwl_swing:
+                    if current_wwl_swing is not None:
                         print()
-                    current_vpp = vpp
+                    current_wwl_swing = wwl_swing
 
-                print(f"{vpp:<10.2f}{rt:<15.1f}{fr:<18.6f}{error:<12.6f}")
+                print(f"{wwl_swing:<10.2f}{rt:<15.1f}{fr:<18.6f}{error:<12.6f}")
         else:
             print("\nNo configurations found matching the target fault rate.")
             print("Try adjusting the target fault rate or expanding the sweep ranges.")
@@ -165,11 +202,14 @@ def main():
             raise ValueError("refresh_t is required for DRAM models")
         base_params['refresh_t'] = args.refresh_t * 1e-6
         base_params['vth_sigma'] = args.vth_sigma / 1000.0  # convert mV to V
-        if args.vpp is not None:
-            base_params['custom_vpp'] = args.vpp
-            param_info = f"refresh_t={args.refresh_t}us, vth_sigma={args.vth_sigma}mV, vpp={args.vpp}V"
-        else:
-            param_info = f"refresh_t={args.refresh_t}us, vth_sigma={args.vth_sigma}mV"
+        param_parts = [f"refresh_t={args.refresh_t}us", f"vth_sigma={args.vth_sigma}mV"]
+        if args.vdd is not None:
+            base_params['custom_vdd'] = args.vdd
+            param_parts.append(f"vdd={args.vdd}V")
+        if args.wwl_swing is not None:
+            base_params['custom_wwl_swing'] = args.wwl_swing
+            param_parts.append(f"wwl_swing={args.wwl_swing}V")
+        param_info = ", ".join(param_parts)
     else:
         base_params['rep_conf'] = np.array(rep_conf_list)
         base_params['encode'] = 'dense'
@@ -185,7 +225,8 @@ def main():
         base_params.update({
             'model_def_path': args.model_def,
             'model_path': args.model,
-            'model_class_name': args.model_class
+            'model_class_name': args.model_class,
+            'num_classes': args.num_classes
         })
         print(f"Injecting {args.mode.upper()} faults into DNN model with seed {args.seed}, {param_info}...")
         
@@ -204,21 +245,50 @@ def main():
         print(f"\nTest for {args.mode.upper()} single matrix fault generation\n")
         np.random.seed(args.seed)
         test_matrix = np.random.uniform(-1, 1, size=test_size)
-        print(f"Original {args.mode.upper()} Matrix (sample):")
-        sample_rows_orig = min(5, test_matrix.shape[0])
-        sample_cols_orig = min(5, test_matrix.shape[1])
-        print(test_matrix[:sample_rows_orig, :sample_cols_orig])
-        
+        sample_rows = min(5, test_matrix.shape[0])
+        sample_cols = min(5, test_matrix.shape[1])
+
+        # Step 1: Original (unquantized) matrix
+        print(f"Step 1 - Original matrix (sample):")
+        print(test_matrix[:sample_rows, :sample_cols])
+
+        # Step 2: Quantized matrix (before fault injection)
+        flattened = torch.from_numpy(test_matrix.copy()).view(-1)
+        if fi_config.pt_device == "cuda":
+            flattened = flattened.to(torch.device(fi_config.pt_device))
+        exp_bias = 0
+        if args.q_type == 'afloat':
+            exp_bias = get_afloat_bias(abs(flattened), args.frac_bits)
+        if 'dram' in args.mode:
+            bit_width = get_q_type_bit_width(args.q_type, args.int_bits, args.frac_bits)
+            q_rep_conf = np.array([2] * bit_width)
+        else:
+            q_rep_conf = np.array(rep_conf_list)
+        mlc_values, mask = convert_mlc_mat(flattened, q_rep_conf, args.int_bits, args.frac_bits, exp_bias, args.q_type)
+        quantized_flat = convert_f_mat(mlc_values, q_rep_conf, args.int_bits, args.frac_bits, exp_bias, args.q_type, mask)
+        quantized_matrix = np.reshape(quantized_flat.cpu().data.numpy(), test_matrix.shape)
+        print(f"\nStep 2 - Quantized matrix ({args.q_type}, int={args.int_bits}, frac={args.frac_bits}):")
+        print(quantized_matrix[:sample_rows, :sample_cols])
+
+        # Step 3: Fault injection + summary
         faulty_matrix = fault_injection.mat_fi(test_matrix.copy(), **base_params)
-        print(f"Matrix after {args.mode.upper()} injection with seed {args.seed}, {param_info}:")
-        print("Faulty matrix sample:")
-        sample_rows = min(5, faulty_matrix.shape[0])
-        sample_cols = min(5, faulty_matrix.shape[1])
-        print(faulty_matrix[:sample_rows, :sample_cols])
-        
-        diff_matrix = test_matrix - faulty_matrix
-        print("Difference (faults):")
-        print(diff_matrix[:sample_rows, :sample_cols])
+        diff_matrix = faulty_matrix - quantized_matrix
+        fault_rows, fault_cols = np.nonzero(diff_matrix)
+        num_faults = len(fault_rows)
+        marker = ' (*)' if not _USE_COLOR else ''
+        print(f"\nStep 3 - Fault summary: {RED}{BOLD}{num_faults}{RESET} affected cells out of {test_matrix.size}")
+        if num_faults > 0:
+            print(f"\n  {'[row,col]':<12} {'Quantized':>12} {'Faulty':>12} {'Diff':>12}")
+            print(f"  {'-' * 52}")
+            max_show = 30
+            for i in range(min(num_faults, max_show)):
+                r, c = fault_rows[i], fault_cols[i]
+                q_val = quantized_matrix[r, c]
+                f_val = faulty_matrix[r, c]
+                d_val = diff_matrix[r, c]
+                print(f"  [{r:>3d},{c:>3d}]     {q_val:>12.6f} {RED}{f_val:>12.6f}{RESET}{marker} {d_val:>+12.6f}")
+            if num_faults > max_show:
+                print(f"  ... and {num_faults - max_show} more")
 
 if __name__=="__main__":
     main()

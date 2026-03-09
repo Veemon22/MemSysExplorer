@@ -1,0 +1,43 @@
+MemoryCellInputFile: sample_cells/sample_edram3ts/sample_eDRAM3T_7nm_cell.yaml
+
+ProcessNode: 7
+DeviceRoadmap: LOP
+
+ProcessNodeR: 7
+DeviceRoadmapR: LOP
+
+ProcessNodeW: 7
+DeviceRoadmapW: LOP
+
+DesignTarget: cache
+
+CacheAccessMode: Normal
+Associativity: 8  # for cache only
+
+OptimizationTarget: ReadDynamicEnergy
+
+OutputFilePrefix: test
+EnablePruning: Yes
+
+Capacity:
+  Value: 128
+  Unit: KB
+WordWidth: 128  # bits
+
+LocalWire:
+  Type: LocalAggressive
+  RepeaterType: RepeatedNone
+  UseLowSwing: No
+
+GlobalWire:
+  Type: GlobalAggressive
+  RepeaterType: RepeatedNone
+  UseLowSwing: No
+
+Routing: H-tree
+
+InternalSensing: true
+
+Temperature: 300  # Kelvin
+
+BufferDesignOptimization: latency

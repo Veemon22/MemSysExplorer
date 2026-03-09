@@ -1,0 +1,22 @@
+# SRAM cell configuration
+
+# Basic Cell Properties
+MemCellType: SRAM
+CellArea_F2: 146
+CellAspectRatio: 1.46
+
+# SRAM Transistor Widths
+SRAMCellNMOSWidth_F: 2.08
+SRAMCellPMOSWidth_F: 1.23
+
+# Access Device
+Access:
+  Type: CMOS
+  CMOSWidth_F: 1.31
+
+# Sensing Properties
+MinSenseVoltage_mV: 80
+ReadVoltage_V: 1.1
+
+# Additional Properties
+Stitching: 16

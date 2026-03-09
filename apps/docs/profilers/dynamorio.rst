@@ -127,10 +127,10 @@ The instruction threshold feature automatically terminates profiling after a spe
 
 When the threshold is reached, the profiler will:
 
-1. Print a notification message with the exact instruction count
+1. Print a notification message with the current captured statistics
 2. Flush all buffered data to output files
 3. Print final statistics
-4. Terminate the application gracefully
+4. Terminate the application 
 
 Example configuration:
 
@@ -148,13 +148,13 @@ Below are examples of how to execute the profiling tool with different actions:
 
   .. code-block:: bash
 
-     python main.py --profiler dynamorio --action profiling --executable ./executable
+     python3 main.py --profiler dynamorio --action profiling --executable ./executable
 
 - **Profiling with custom configuration:**
 
   .. code-block:: bash
 
-     python main.py --profiler dynamorio --action profiling --config config/memcount_config.txt --executable ./executable
+     python3 main.py --profiler dynamorio --action profiling --config config/memcount_config.txt --executable ./executable
 
 - **Profiling with instruction threshold enabled:**
 
@@ -169,25 +169,206 @@ Below are examples of how to execute the profiling tool with different actions:
 
   .. code-block:: bash
 
-     python main.py --profiler dynamorio --action profiling --config config/memcount_config.txt --executable ./executable
+     python3 main.py --profiler dynamorio --action profiling --config config/memcount_config.txt --executable ./executable
 
 - **Extracting metrics from an existing report:**
 
   .. code-block:: bash
 
-     python main.py --profiler dynamorio --action extract_metrics --report_file ./report_file
+     python3 main.py --profiler dynamorio --action extract_metrics --report_file ./report_file
 
 - **Performing both profiling and metric extraction:**
 
   .. code-block:: bash
 
-     python main.py --profiler dynamorio --action both --executable ./executable
+     python3 main.py --profiler dynamorio --action both --executable ./executable
 
 Sample Output
 -------------
 
 This profiler generates output traces that follow the standardized format defined by the MemSysExplorer Application Interface.
 
+Output Files
+------------
+
+The DynamoRIO profiler generates several output files during execution:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - File
+     - Description
+   * - ``memtrace_<pid>.pb``
+     - Binary protobuf file containing detailed memory trace events (when ``enable_trace=true``)
+   * - ``timeseries_<pid>.pb``
+     - Binary protobuf file containing time-series WSS metrics sampled at configurable intervals
+   * - ``memsyspatternconfig_<workload>.json``
+     - JSON file with aggregated memory statistics (read/write counts, working set size, etc.)
+   * - ``memsysmetadata_dynamorio.json``
+     - JSON file with system metadata (CPU info, cache hierarchy, software versions)
+
+Time-Series Output
+------------------
+
+The time-series output (``timeseries_<pid>.pb``) captures windowed Working Set Size (WSS) samples throughout program execution.
+
+**What is Captured:**
+
+- WSS measurements at configurable intervals (controlled by ``sample_window_refs``)
+- Per-window read and write counts
+- Both exact and approximate (HyperLogLog) WSS estimates
+- Size histograms for memory accesses
+
+**Configuring Sampling Interval:**
+
+The sampling window size is controlled by the ``sample_window_refs`` parameter in the configuration file:
+
+.. code-block:: ini
+
+   sample_window_refs=2000
+
+This captures a WSS sample every 2000 memory references.
+
+**Fields in Time-Series Output:**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Field
+     - Description
+   * - ``window_number``
+     - Sequential index of the sampling window
+   * - ``thread_id``
+     - Thread ID for the sample
+   * - ``timestamp``
+     - Timestamp of the sample
+   * - ``read_count``
+     - Number of read operations in the window
+   * - ``write_count``
+     - Number of write operations in the window
+   * - ``total_refs``
+     - Total memory references in the window
+   * - ``wss_exact``
+     - Exact working set size (unique cache lines accessed)
+   * - ``wss_approx``
+     - HyperLogLog-estimated WSS (memory-efficient approximation)
+   * - ``read_size_histogram``
+     - Distribution of read sizes (1, 2, 4, 8, 16, 32, 64, other bytes)
+   * - ``write_size_histogram``
+     - Distribution of write sizes
+
+**Parsing Time-Series Output:**
+
+Use the ``timeseries_parser.py`` tool to convert protobuf output to readable formats:
+
+.. code-block:: bash
+
+   # Get summary statistics
+   python3 tools/timeseries_parser.py output/timeseries_12345.pb
+
+   # Export to CSV
+   python3 tools/timeseries_parser.py output/timeseries_12345.pb --format csv --output wss_data.csv
+
+   # Visualize with plots
+   python3 tools/timeparser_plot.py output/timeseries_12345.pb --output wss_plot.png
+
+See :doc:`../tools` for complete documentation on parsing tools.
+
+Memory Trace Output
+-------------------
+
+The memory trace output (``memtrace_<pid>.pb``) captures per-access memory events when ``enable_trace=true``.
+
+**What is Captured:**
+
+- Every memory read and write operation
+- Memory addresses accessed
+- Thread context for each access
+- Cache hit/miss information (if available)
+
+**Fields in Trace Output:**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Field
+     - Description
+   * - ``timestamp``
+     - Event timestamp (monotonically increasing counter)
+   * - ``thread_id``
+     - Thread ID performing the memory access
+   * - ``address``
+     - Memory address accessed (hexadecimal)
+   * - ``mem_op``
+     - Operation type: ``READ`` or ``WRITE``
+   * - ``hit_miss``
+     - Cache result: ``HIT`` or ``MISS``
+
+**Parsing Memory Trace Output:**
+
+Use the ``trace_parser.py`` tool to convert protobuf output:
+
+.. code-block:: bash
+
+   # Get summary statistics
+   python3 tools/trace_parser.py output/memtrace_12345.pb
+
+   # Export to JSON
+   python3 tools/trace_parser.py output/memtrace_12345.pb --format json --output trace.json
+
+   # Export first 10000 events to CSV
+   python3 tools/trace_parser.py output/memtrace_12345.pb --format csv --limit 10000 --output trace.csv
+
+   # Filter by thread
+   python3 tools/trace_parser.py output/memtrace_12345.pb --thread 12345 --format csv
+
+See :doc:`../tools` for complete documentation on parsing tools.
+
+Parsing Workflow
+----------------
+
+.. note::
+
+   Working Set Size (WSS) estimation is an area of ongoing research. The current implementation
+   uses ``ws_tsearch`` (Working Set Tree Search) for exact tracking and HyperLogLog for
+   approximate estimation. For implementation details, see the common library documentation
+   at :doc:`common`.
+
+**End-to-End Workflow for DynamoRIO Output:**
+
+**Step 1: Run profiling with configuration**
+
+.. code-block:: bash
+
+   python3 main.py --profiler dynamorio --action profiling \
+       --config config/memcount_config.txt --executable ./my_workload
+
+**Step 2: Parse time-series data for WSS trends**
+
+.. code-block:: bash
+
+   python3 tools/timeseries_parser.py output/timeseries_*.pb --format summary
+
+**Step 3: Visualize WSS over time**
+
+.. code-block:: bash
+
+   python3 tools/timeparser_plot.py output/timeseries_*.pb --output wss_analysis.png
+
+**Step 4: Parse memory trace for detailed analysis (if enabled)**
+
+.. code-block:: bash
+
+   python3 tools/trace_parser.py output/memtrace_*.pb --format csv --output detailed_trace.csv
+
+**Step 5: Calculate reuse distance (optional)**
+
+.. code-block:: bash
+
+   python3 tools/reuse_distance.py detailed_trace.csv --output reuse_analysis.txt
 
 Additional Notes
 ----------------

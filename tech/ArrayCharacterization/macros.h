@@ -299,11 +299,9 @@
 
 #define OUTPUT_TO_FILE { \
 	if (inputParameter->designTarget == cache) { \
-		for (int i = 0; i < (int)full_exploration; i++) \
-			tempResult.printAsCacheToCsvFile(bestTagResults[i], inputParameter->cacheAccessMode, outputFile); \
+		tempResult.printAsCacheToYamlFile(bestTagResults[0], inputParameter->cacheAccessMode, outputFile); \
 	} else { \
-		tempResult.printToCsvFile(outputFile); \
-		outputFile << endl; \
+		tempResult.printToYamlFile(outputFile); \
 	} \
 }
 

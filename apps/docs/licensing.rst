@@ -1,4 +1,4 @@
-5. Licensing and Attribution
+6. Licensing and Attribution
 ============================
 
 This project integrates several third-party profilers to support memory and performance analysis. Each profiler is used in accordance with its respective license. The following provides attribution and licensing details for all integrated profiling tools.

@@ -16,8 +16,8 @@ LDFLAGS := -g
 LDLIBS :=
 
 # construct list of .cpp and their corresponding .o and .d files
-SRC := $(wildcard *.cpp)
-INC := 
+SRC := $(wildcard *.cpp) $(wildcard yaml-cpp/src/*.cpp)
+INC := -Iyaml-cpp/include
 DBG :=
 OBJ := $(SRC:.cpp=.o)
 DEP := Makefile.dep

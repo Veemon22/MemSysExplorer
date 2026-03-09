@@ -94,6 +94,7 @@ public:
 	double maxNmosSize;				/* Default value is MAX_NMOS_SIZE in constant.h, however, user might change it, Unit: F */
 
 	string outputFilePrefix;
+	string outputDirectory;
 
 	int minNumRowMat;
 	int maxNumRowMat;

@@ -219,14 +219,14 @@ The MemSysExplorer profiling tool can be executed using the following general co
 
   .. code-block:: bash
 
-     python3 main.py --profiler perf --action extract_metrics --level l3 --executable /path/to/your/executable
+     python3 main.py --profiler perf --action profiling --level l3 --executable /path/to/your/executable
 
 - **Sniper Simulator**
 
   .. code-block:: bash
 
      python3 main.py --profiler sniper --action both --level dram \
-       --result_dir /path/to/your/output --config config/sniper.cfg --executable /path/to/your/executable
+       --results_dir /path/to/your/output --config config/skylake.cfg --executable /path/to/your/executable
 
 - **NVBit**
 
@@ -238,7 +238,7 @@ The MemSysExplorer profiling tool can be executed using the following general co
 
   .. code-block:: bash
 
-     python3 main.py --profiler ncu --action extract_metrics --level l1 \
+     python3 main.py --profiler ncu --action profiling --level l1 \
        --config config/ncu_template.json --executable /path/to/your/executable
 
 1.6 Output Samples
@@ -251,7 +251,7 @@ Two key output files are generated during each profiling session:
 Memory Statistics Trace
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-This JSON file captures the high-level memory activity observed during the execution.
+This JSON file is generated with the `extract_metrics` action and captures the high-level memory activity observed during the execution.
 
 **File Name Format:**  
 A unique identifier (`_<id>`) is automatically appended if a file with the same name already exists to avoid overwriting.
@@ -344,6 +344,7 @@ These are the two **core output traces** produced by all profilers in the MemSys
 
 For additional profiler-specific outputs, refer to the respective sections under :doc:`profilers`.
 
+To parse and analyze these output files, see the :doc:`tools` documentation for utilities like ``trace_parser.py``, ``timeseries_parser.py``, and visualization tools.
 
 1.7 Profiler-Specific Configurations
 ------------------------------------

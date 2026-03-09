@@ -1,0 +1,37 @@
+# This sample PCRAM cell configuration is generated from the following paper:
+# Architecting Phase Change Memory as a Scalable DRAM Alternative
+# Proceedings of International symposium on Computer architecture, 2009
+
+# Basic Cell Properties
+MemCellType: PCRAM
+ProcessNode: 90
+CellArea_F2: 9
+CellAspectRatio: 1
+
+# Resistance Values
+ResistanceOn_ohm: 1000
+ResistanceOff_ohm: 1000000
+
+# Read Operation
+Read:
+  Mode: voltage
+  Current_uA: 40
+  Energy_pJ: 2
+
+# Reset Operation
+Reset:
+  Mode: current
+  Current_uA: 300
+  Pulse_ns: 40
+
+# Set Operation
+Set:
+  Mode: current
+  Current_uA: 150
+  Pulse_ns: 150
+
+# Access Device
+Access:
+  Type: CMOS
+  VoltageDropAccessDevice_V: 0.3
+  CMOSWidth_F: 2
