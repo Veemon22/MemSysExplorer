@@ -5,6 +5,7 @@ import argparse
 import json
 import yaml
 import shutil
+import pandas as pd
 from run_src.utils import *
 from run_src.interfaces import *
 from run_src.model import evaluate
@@ -379,19 +380,25 @@ def main():
                         model_result = evaluate(sys_cfg, benchmark, tech_result)
                         print(f"\nModel results for benchmark {j}:")
                         print(model_result)
-                        results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath)
+                        results_to_csv(apps_cfg, sys_cfg, apps_result_name, benchmark, tech_result, model_result, csv_filepath)
                 else:
                     apps_result_single = app_result[0]
                     model_result = evaluate(sys_cfg, apps_result_single, tech_result)
                     print("\nModel results:")
                     print(model_result)
-                    results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath)
+                    results_to_csv(apps_cfg, sys_cfg, apps_result_name, apps_result_single, tech_result, model_result, csv_filepath)
             else:
                 model_result = evaluate(sys_cfg, app_result, tech_result)
                 print("\nModel results:")
                 print(model_result)
-                results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath)
+                results_to_csv(apps_cfg, sys_cfg, apps_result_name, app_result, tech_result, model_result, csv_filepath)
 
+    # Reordering CSV Rows for Readability
+    df = pd.read_csv(csv_filepath)
+    df['Capacity_Sort'] = df['Capacity'].apply(parse_capacity)
+    df = df.sort_values(by=['Benchmark', 'MemCellType', 'Capacity_Sort', 'Optimization Target'])
+    df = df.drop(columns=['Capacity_Sort'])
+    df.to_csv(csv_filepath, index=False)
     print(f"\n✓ Model results saved to CSV: {csv_filepath}")
 
 

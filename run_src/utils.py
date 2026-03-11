@@ -82,8 +82,17 @@ def parse_array_char_output(yaml_file_path):
     
     return data
 
+# This function serves the purpose to help sort our CSV results by capacity, which is currently stored as a string (e.g. "32KB", "1MB", etc.). 
+# It converts these strings into a numeric value for proper sorting.
+def parse_capacity(cap_str):
+    units = {'KB': 1, 'MB': 1024, 'GB': 1024**2}
+    for unit, multiplier in units.items():
+        if cap_str.upper().endswith(unit):
+            return int(cap_str[:-len(unit)]) * multiplier
+    return 0
 
-def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, csv_filepath):
+
+def results_to_csv(apps_cfg, sys_cfg, config_name, apps_result, tech_result, model_result, csv_filepath):
     file_exists = os.path.exists(csv_filepath)
     with open(csv_filepath, 'a', newline='') as csvfile:
         writer = csv.writer(csvfile)
@@ -102,21 +111,17 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                     "Optimization Target",
                     "Total Reads",
                     "Total Writes",
-                    "Total Hits",
-                    "Total Misses",
                     "Total Read Latency (ms)",
                     "Total Write Latency (ms)",
-                    "Total Hit Latency (ms)",
-                    "Total Miss Latency (ms)",
                     "Total Latency (ms)",
                     "Total Read Energy (mJ)",
                     "Total Write Energy (mJ)",
-                    "Total Hit Energy (mJ)",
-                    "Total Miss Energy (mJ)",
                     "Total Energy (mJ)",
-                    "Total Read Power (mW)",
-                    "Total Write Power (mW)",
+                    "Total Dynamic Read Power (mW)",
+                    "Total Dynamic Write Power (mW)",
                     "Total Power (mW)",
+                    "Read Bandwidth Usage (%)",
+                    "Write Bandwidth Usage (%)",
                     "Cache Hit Latency (ns)",
                     "Cache Miss Latency (ns)",
                     "Cache Write Latency (ns)",
@@ -144,9 +149,11 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                     "Total Read Energy (mJ)",
                     "Total Write Energy (mJ)",
                     "Total Energy (mJ)",
-                    "Total Read Power (mW)",
-                    "Total Write Power (mW)",
+                    "Total Dynamic Read Power (mW)",
+                    "Total Dynamic Write Power (mW)",
                     "Total Power (mW)",
+                    "Read Bandwidth Usage (%)",
+                    "Write Bandwidth Usage (%)",
                     "Read Latency (ns)",
                     "Write Latency (ns)",
                     "Read Energy (nJ)",
@@ -169,23 +176,19 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                 tech_data.get('capacity', 'N/A'),
                 sys_cfg.get('WordWidth', 'N/A'),
                 tech_data.get('optimization_target', 'N/A'),
-                model_result.get('total_reads', 0),
-                model_result.get('total_writes', 0),
-                model_result.get('total_hits', 0),
-                model_result.get('total_misses', 0),
-                model_result.get('total_read_latency_ms', 0),    # fixed
+                apps_result.get('total_reads', 0),
+                apps_result.get('total_writes', 0),
+                model_result.get('total_read_latency_ms', 0),
                 model_result.get('total_write_latency_ms', 0),
-                model_result.get('total_hit_latency_ms', 0),
-                model_result.get('total_miss_latency_ms', 0),
                 model_result.get('total_latency_ms', 0),
-                model_result.get('total_read_energy_mJ', 0),     # fixed
+                model_result.get('total_read_energy_mJ', 0),
                 model_result.get('total_write_energy_mJ', 0),
-                model_result.get('total_hit_energy_mJ', 0),
-                model_result.get('total_miss_energy_mJ', 0),
                 model_result.get('total_energy_mJ', 0),
-                model_result.get('total_read_power_mW', 0),      # new
-                model_result.get('total_write_power_mW', 0),     # new
-                model_result.get('total_power_mW', 0),           # new
+                model_result.get('total_dynamic_read_power_mW', 0),      
+                model_result.get('total_dynamic_write_power_mW', 0),     
+                model_result.get('total_power_mW', 0),   
+                model_result.get('read_bw_utilization_%', 0),
+                model_result.get('write_bw_utilization_%', 0),   
                 tech_data.get('cache_hit_latency', 0),
                 tech_data.get('cache_miss_latency', 0),
                 tech_data.get('cache_write_latency', 0),
@@ -205,17 +208,19 @@ def results_to_csv(apps_cfg, sys_cfg, config_name, tech_result, model_result, cs
                 tech_data.get('capacity', 'N/A'),
                 sys_cfg.get('WordWidth', 'N/A'),
                 tech_data.get('optimization_target', 'N/A'),
-                model_result.get('total_reads', 0),
-                model_result.get('total_writes', 0),
+                apps_result.get('total_reads', 0),
+                apps_result.get('total_writes', 0),
                 model_result.get('total_read_latency_ms', 0),
                 model_result.get('total_write_latency_ms', 0),
                 model_result.get('total_latency_ms', 0),
                 model_result.get('total_read_energy_mJ', 0),
                 model_result.get('total_write_energy_mJ', 0),
                 model_result.get('total_energy_mJ', 0),
-                model_result.get('total_read_power_mW', 0),
-                model_result.get('total_write_power_mW', 0),
+                model_result.get('total_dynamic_read_power_mW', 0),
+                model_result.get('total_dynamic_write_power_mW', 0),
                 model_result.get('total_power_mW', 0),
+                model_result.get('read_bw_utilization_%', 0),
+                model_result.get('write_bw_utilization_%', 0),
                 tech_data.get('read_latency', 0),
                 tech_data.get('write_latency', 0),
                 tech_data.get('read_dynamic_energy', 0),
