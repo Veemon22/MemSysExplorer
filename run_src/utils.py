@@ -69,6 +69,8 @@ def parse_array_char_output(yaml_file_path):
                 res = result["Results"]
                 data["total_area"] = res['Area']['Total']['Area_mm2']
                 data["read_latency"] = res['Timing']['Read']['Latency_ns']
+                data["read_bw"] = res['Timing']['ReadBandwidth_Bps']
+                data["write_bw"] = res['Timing']['WriteBandwidth_Bps']
                 data["read_dynamic_energy"] = res['Power']['Read']['DynamicEnergy_pJ']
                 data["leakage_power"] = res['Power']['Leakage_mW']
                 if "Write" in res["Timing"]:

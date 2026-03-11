@@ -376,18 +376,18 @@ def main():
                 if apps_cfg['multithread']:
                     print("\nEvaluating multiple benchmarks from Sniper output...")
                     for j, benchmark in enumerate(app_result):
-                        model_result = evaluate(sys_cfg['DesignTarget'], benchmark, tech_result)
+                        model_result = evaluate(sys_cfg, benchmark, tech_result)
                         print(f"\nModel results for benchmark {j}:")
                         print(model_result)
                         results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath)
                 else:
                     apps_result_single = app_result[0]
-                    model_result = evaluate(sys_cfg['DesignTarget'], apps_result_single, tech_result)
+                    model_result = evaluate(sys_cfg, apps_result_single, tech_result)
                     print("\nModel results:")
                     print(model_result)
                     results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath)
             else:
-                model_result = evaluate(sys_cfg['DesignTarget'], app_result, tech_result)
+                model_result = evaluate(sys_cfg, app_result, tech_result)
                 print("\nModel results:")
                 print(model_result)
                 results_to_csv(apps_cfg, sys_cfg, apps_result_name, tech_result, model_result, csv_filepath)
