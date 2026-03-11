@@ -6,41 +6,41 @@
  'git_revision': '090ac23cf7eed63a684093c1c252bf0efe5f320a',
  'host': 'veemon22-HP-255-15-6-inch-G10-Notebook-PC',
  'pin_version': 'unknown',
- 'rusage': (10.476671,
-            0.486025,
-            226656,
+ 'rusage': (7.26305,
+            0.16686299999999998,
+            226808,
             0,
             0,
             0,
-            44044,
+            44042,
             0,
             0,
             0,
-            232,
+            184,
             0,
             0,
             0,
-            10467,
-            387),
+            10361,
+            159),
  'snipercmd': ['bash',
                '-c',
                '/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/sniper/snipersim/lib/sniper '
                '-c '
                '/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/sniper/snipersim/config/base.cfg '
                '--general/total_cores=1 '
-               '--general/output_dir=/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/results/sniper_test_run_1/apps_output '
+               '--general/output_dir=/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/results/sniper_new_run_1/apps_output '
                '--config=/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/configs/sniper_run_config_new/skylake.cfg '
                '-g --traceinput/stop_with_first_app=true -g '
                '--traceinput/restart_apps=false -g '
                '--traceinput/stop_with_first_app=false -g '
                '--traceinput/enabled=true -g '
                '--traceinput/emulate_syscalls=true -g --traceinput/num_apps=1 '
-               '-g --traceinput/trace_prefix=/tmp/tmpxge60jqr/run_benchmarks'],
- 't_elapsed': 19.001460075378418,
- 't_start': 1773007134.2003906,
+               '-g --traceinput/trace_prefix=/tmp/tmp6og3xb32/run_benchmarks'],
+ 't_elapsed': 11.537156820297241,
+ 't_start': 1773202587.0738287,
  'tracecmds': [['/home/veemon22/Documents/code/Pentecost_Work/MemSysExplorer/apps/profilers/sniper/snipersim/record-trace',
                 '-o',
-                '/tmp/tmpxge60jqr/run_benchmarks',
+                '/tmp/tmp6og3xb32/run_benchmarks',
                 '-e',
                 '1',
                 '-s',
