@@ -364,7 +364,6 @@ def main():
 
     csv_filename = f"{config_name}_results.csv"
     csv_filepath = os.path.join(results_dir, "model_output", csv_filename)
-    model_result_filename = os.path.join(results_dir, "model_output", f"{config_name}_model_results.yaml")
 
     for tech_result in tech_results:
         mem_cell = tech_result.get('mem_cell_type', 'unknown')
@@ -393,10 +392,6 @@ def main():
                 print("\nModel results:")
                 print(model_result)
                 results_to_csv(apps_cfg, sys_cfg, apps_result_name, app_result, tech_result, model_result, csv_filepath)
-
-    # Print model output to file
-    with open(model_result_filename, 'w') as f:
-        yaml.dump(model_result, f)
 
     # Reordering CSV Rows for Readability
     df = pd.read_csv(csv_filepath)
