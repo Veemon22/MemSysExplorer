@@ -45,6 +45,8 @@ def parse_array_char_output(yaml_file_path):
                 data["data_array_read_latency"] = data_results['Timing']['Read']['Latency_ns']
                 data["data_array_read_dynamic_energy"] = data_results['Power']['Read']['DynamicEnergy_pJ']
                 data["data_array_leakage_power"] = data_results['Power']['Leakage_mW']
+                data["data_array_read_bw"] = data_results['Timing']['ReadBandwidth_Bps']
+                data["data_array_write_bw"] = data_results['Timing']['WriteBandwidth_Bps']
                 if "Write" in data_results["Power"]:
                     data["data_array_write_dynamic_energy"] = data_results['Power']['Write']['DynamicEnergy_pJ']
                 elif "Set" in data_results["Power"]:

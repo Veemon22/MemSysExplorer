@@ -17,6 +17,8 @@ def evaluate(sys_cfg, apps_result, tech_result):
         read_hit_latency         = tech_result.get('cache_hit_latency', 0)          # (ns)
         read_miss_latency        = tech_result.get('cache_miss_latency', 0)
         write_latency            = tech_result.get('cache_write_latency', 0)
+        read_bw                  = tech_result.get('data_array_read_bw', 0)
+        write_bw                 = tech_result.get('data_array_write_bw', 0)        # Bps
         read_hit_dynamic_energy  = tech_result.get('cache_hit_dynamic_energy', 0)   # (nJ per access)
         read_miss_dynamic_energy = tech_result.get('cache_miss_dynamic_energy', 0)
         write_dynamic_energy     = tech_result.get('cache_write_dynamic_energy', 0)
@@ -38,8 +40,10 @@ def evaluate(sys_cfg, apps_result, tech_result):
         total_power       = leakage_power_total + read_power_total + write_power_total
 
         # bandwidth (not yet implemented)
-        read_bw_utilization = 0
-        write_bw_utilization = 0
+        rps = (load_hits + load_misses) / time if time else 0
+        wps = (store_hits + store_misses) / time if time else 0
+        read_bw_utilization = 100 * (rps * WordWidth) / read_bw if read_bw else 0
+        write_bw_utilization = 100 * (wps * WordWidth) / write_bw if write_bw else 0
 
     else: # assume DesignTarget is 'RAM' and memory statistics are from DynamoRIO
         writes  = apps_result.get('total_writes', 0)
@@ -66,10 +70,10 @@ def evaluate(sys_cfg, apps_result, tech_result):
         write_power_total = write_energy_total / time if time else 0
         total_power = leakage_power_total + read_power_total + write_power_total
 
-        rps = reads / time 
-        wps = writes / time 
-        read_bw_utilization = 100 * (rps * WordWidth) / read_bw
-        write_bw_utilization = 100 * (wps * WordWidth) / write_bw
+        rps = reads / time if time else 0
+        wps = writes / time if time else 0
+        read_bw_utilization = 100 * (rps * WordWidth) / read_bw if read_bw else 0
+        write_bw_utilization = 100 * (wps * WordWidth) / write_bw if write_bw else 0
 
     return {
         "benchmark":                    benchmark,
