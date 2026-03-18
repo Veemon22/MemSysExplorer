@@ -279,8 +279,26 @@ python3 main.py --profiler dynamorio --action profiling --config config/memcount
 **Linux Perf:**
 
 ```bash
-python3 main.py --profiler perf --action extract_metrics --level l3 --executable /path/to/your/executable
+python3 main.py --profiler perf --action both --level l2 --executable /path/to/your/executable
 ```
+
+Specify the CPU architecture using `--arch` (default: `intel`):
+
+```bash
+python3 main.py --profiler perf --action both --level l2 --arch amd --executable /path/to/your/executable
+```
+
+Profile DRAM-level metrics:
+
+```bash
+python3 main.py --profiler perf --action both --level dram --executable /path/to/your/executable
+```
+
+Additional perf-specific flags:
+
+* `--arch` — CPU architecture: `intel` (default), `amd`
+* `--repeat` — Number of measurement repeats (default: `3`)
+* `--level` — Memory level: `l1`, `l2`, `l3`, `dram`, `all`
 
 **Sniper Simulator:**
 
