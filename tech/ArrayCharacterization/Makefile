@@ -1,7 +1,7 @@
 # Non-volatile memory simulator
 # Pre-release version, r131
 
-target := nvsim
+target := msxac
 
 # define tool chain
 CXX := g++

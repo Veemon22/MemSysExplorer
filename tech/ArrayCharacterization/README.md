@@ -57,7 +57,7 @@ Running `make` will automatically set the required compiler flags.
 Example configuration files are provided in the sample_configs folder. Each configuration in sample_configs references a cell in the sample_cells folder. Each sample cell has been calibrated to published physical memory cell layouts/specifications from academia & industry. Run Simulations using the following command:
 
 ```
-./nvsim sample_configs/<chosen_config>.cfg
+./msxac sample_configs/<chosen_config>.cfg
 ```
 ## Example for 333-eDRAM
 In addition to the configuration existing configuration parameters in NVSIM, MemSysExplorer adds the following additional parameters for 3T-eDRAMs.
