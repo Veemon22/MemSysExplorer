@@ -6,7 +6,7 @@ The tests in this folder help validate the outputs of profilers to aid in develo
 `
 ### `run_all_arraycharacterization_samples.sh`
 
-This script runs `./nvsim` on all of the configs in the `/sample_configs` directory and saves the results to `/nvsim_results`.
+This script runs `./msxac` on all of the configs in the `/sample_configs` directory and saves the results to `/msxac_results`.
 
 Usage: `./run_all_array_characterization_samples.sh`
 

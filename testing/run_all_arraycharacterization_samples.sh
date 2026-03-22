@@ -1,8 +1,12 @@
 #!/bin/bash
 
-BASE_DIR="/home/abao26/MemSysExplorer/tech/ArrayCharacterization"
-CONFIG_DIR="$BASE_DIR/sample_configs"
-RESULTS_DIR="./nvsim_results"
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+EXEC_DIR="$SCRIPT_DIR/../tech/ArrayCharacterization"
+RESULTS_DIR="$SCRIPT_DIR/msxac_results"
+
+cd "$EXEC_DIR" || { echo "Error: Could not find $EXEC_DIR"; exit 1; }
+
+CONFIG_DIR="./sample_configs"
 
 mkdir -p "$RESULTS_DIR"
 
@@ -12,11 +16,9 @@ find "$CONFIG_DIR" -type f -name "*.yaml" | while read -r yaml; do
 
     mkdir -p "$(dirname "$out")"
 
-    echo "Running NVSim on $yaml"
+    echo "Running msxac on $yaml"
+    echo "Saving output to $out"
 
-    (
-        cd "$BASE_DIR" || exit 1
-        ./nvsim "sample_configs/$rel"
-    ) > "$out" 2>&1
+    ./msxac "sample_configs/$rel" > "$out" 2>&1
 
 done
