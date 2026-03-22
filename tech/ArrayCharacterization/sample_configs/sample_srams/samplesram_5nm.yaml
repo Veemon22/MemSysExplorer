@@ -1,36 +1,36 @@
--MemoryCellInputFile: sample_cells/sample_srams/sample_SRAM_5nm_cell.yaml
+MemoryCellInputFile: sample_cells/sample_srams/sample_SRAM_5nm_cell.yaml
 
--ProcessNode: 5
--DeviceRoadmap: LOP
+ProcessNode: 5
+DeviceRoadmap: LOP
 
--DesignTarget: cache
+DesignTarget: cache
 
--CacheAccessMode: Normal
--Associativity (for cache only): 8
+CacheAccessMode: Normal
+Associativity: 8
 
--OptimizationTarget: WriteEDP
+OptimizationTarget: WriteEDP
 
--OutputFilePrefix: test
--EnablePruning: Yes
+OutputFilePrefix: test
+EnablePruning: Yes
 
--Capacity (KB): 128
--WordWidth (bit): 128
+Capacity: 128
+WordWidth: 128
 
--LocalWireType: LocalAggressive
--LocalWireRepeaterType: RepeatedNone
+LocalWireType: LocalAggressive
+LocalWireRepeaterType: RepeatedNone
 
--LocalWireUseLowSwing: No
+LocalWireUseLowSwing: No
 
--GlobalWireType: GlobalAggressive
--GlobalWireRepeaterType: RepeatedNone
--GlobalWireUseLowSwing: No
+GlobalWireType: GlobalAggressive
+GlobalWireRepeaterType: RepeatedNone
+GlobalWireUseLowSwing: No
 
--Routing: H-tree
+Routing: H-tree
 
--InternalSensing: true
+InternalSensing: true
 
--Temperature (K): 370
--RetentionTime (us): 40
+Temperature: 370
+RetentionTime: 40
 
--BufferDesignOptimization: latency
+BufferDesignOptimization: latency
 
