@@ -10,16 +10,16 @@ Make_Check_PRINT_ON = True
 # run array characterization
 def run_array_characterization(tech_yaml_path, Tech_Dir):
      # Checking to see if make has been ran in tech/ArrayCharacterization
-    NVSim_File_Path = os.path.join(Tech_Dir, "nvsim")
-    if not os.path.exists(NVSim_File_Path):
+    msxac_File_Path = os.path.join(Tech_Dir, "msxac")
+    if not os.path.exists(msxac_File_Path):
         if Make_Check_PRINT_ON:
-            print("NVSim binary not found. Running make in tech/ArrayCharacterization now")
+            print("msxac binary not found. Running make in tech/ArrayCharacterization now")
         subprocess.run(["make"], cwd=Tech_Dir)
 
     print("\nRunning array characterization interface..")
 
     try:
-        tech_result = subprocess.run(["./nvsim", tech_yaml_path], 
+        tech_result = subprocess.run(["./msxac", tech_yaml_path], 
                                      capture_output=True, 
                                      text=True, cwd=Tech_Dir)
     except subprocess.CalledProcessError as e:
