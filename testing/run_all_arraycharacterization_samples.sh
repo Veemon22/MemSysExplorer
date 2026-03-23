@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 EXEC_DIR="$SCRIPT_DIR/../tech/ArrayCharacterization"
 RESULTS_DIR="$SCRIPT_DIR/msxac_results"

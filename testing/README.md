@@ -3,7 +3,6 @@
 The tests in this folder help validate the outputs of profilers to aid in development and testing of the software.
 
 ## Validate ArrayCharacterization Results
-`
 ### `run_all_arraycharacterization_samples.sh`
 
 This script runs `./msxac` on all of the configs in the `/sample_configs` directory and saves the results to `/msxac_results`.
@@ -14,7 +13,7 @@ Usage: `./run_all_array_characterization_samples.sh`
 
 ### `validate_arraycharacterization_output.py`
 
-This script validates that an NVSim output file correctly reflects the configuration specified in a YAML input file. It performs consistency checks between key parameters in the NVSim configuration (.yaml) and the generated NVSim output (.out).
+This script validates that an msxAC output file correctly reflects the configuration specified in a YAML input file. It performs consistency checks between key parameters in the msxAC configuration (.yaml) and the generated msxAC output (.out).
 
 Checks:
 - `Capacity`
